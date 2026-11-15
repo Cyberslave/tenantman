@@ -1,0 +1,23 @@
+{% extends "base.html" %}
+{% block title %}Account · {{ brand.name }}{% endblock %}
+{% block content %}
+<section class="panel narrow wide">
+  <h1>Account</h1>
+  <p class="muted">{{ g.user.full_name }} · <span class="mono">{{ g.user.id }}</span></p>
+  <h2>Email alerts</h2>
+  {% if not email_on %}<p class="flash">Email is not switched on for this server yet, so alerts only appear in the app.</p>{% endif %}
+  <form method="post" class="stack">
+    <input type="hidden" name="_csrf" value="{{ csrf_token() }}">
+    {% if g.user.is_admin %}
+      <label>Your email address <input type="email" name="email" value="{{ g.user.email or '' }}" autocomplete="email"></label>
+    {% else %}
+      <p>Alerts are sent to: <strong>{{ g.user.email or 'no email address on file' }}</strong>{% if not g.user.email %}<br><span class="muted small">Ask the administrator to add your email address.</span>{% endif %}</p>
+    {% endif %}
+    <label class="check"><input type="checkbox" name="email_notify" value="1" {{ 'checked' if g.user.email_notify }}> Email me about invitations, reminders, shared documents and unread messages</label>
+    <p class="muted small">Emails are only sent for things you have not already seen in the app. Message emails say who wrote to you, never what they said.</p>
+    <button class="btn" type="submit">Save</button>
+  </form>
+  <h2>Password</h2>
+  <p><a class="btn ghost" href="{{ url_for('change_password') }}">Change password</a></p>
+</section>
+{% endblock %}

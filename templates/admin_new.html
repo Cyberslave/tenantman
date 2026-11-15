@@ -1,0 +1,47 @@
+{% extends "base.html" %}
+{% block title %}Add tenant · {{ brand.name }}{% endblock %}
+{% block content %}
+<section class="panel narrow wide">
+  <h1>Add tenant</h1>
+  <p class="muted">The system creates the tenant ID (it starts with the code of the space they rent), a personal folder and a temporary password, and sets up the lease.</p>
+  <form method="post" class="stack">
+    <input type="hidden" name="_csrf" value="{{ csrf_token() }}">
+    <h2>Tenant</h2>
+    <label>Contact person <input name="full_name" value="{{ form.get('full_name','') }}" required autofocus></label>
+    <label>Business name <input name="business_name" value="{{ form.get('business_name','') }}"></label>
+    <label>Type of business <input name="trade" value="{{ form.get('trade','') }}" placeholder="e.g. Butchery, hair salon, storage"></label>
+    <div class="grid">
+      <label>Email <input type="email" name="email" value="{{ form.get('email','') }}"></label>
+      <label>Phone <input name="phone" value="{{ form.get('phone','') }}"></label>
+    </div>
+    <h2>Lease</h2>
+    <label>Space
+      <select name="unit" required>
+        <option value="">Choose a space</option>
+        {% for s in spaces %}<option value="{{ s.code }}" {{ 'selected' if form.get('unit') == s.code }}>{{ s.name }} ({{ s.note }}{% if s.rent %} · standard rent {{ s.rent|money }}{% endif %})</option>{% endfor %}
+      </select>
+    </label>
+    <div class="grid">
+      <label>Lease starts <input type="date" name="start_date" value="{{ form.get('start_date','') }}" required></label>
+      <label>Lease ends (optional) <input type="date" name="end_date" value="{{ form.get('end_date','') }}"></label>
+      <label>Monthly rent <input name="rent" value="{{ form.get('rent','') }}" inputmode="decimal" placeholder="Leave blank for the standard rent"></label>
+      <label>Deposit (optional) <input name="deposit" value="{{ form.get('deposit','') }}" inputmode="decimal"></label>
+      <label>Rent due on day <input type="number" name="due_day" min="1" max="28" value="{{ form.get('due_day','1') }}"></label>
+      <label>Start billing from <input type="date" name="bill_from" value="{{ form.get('bill_from','') }}"></label>
+    </div>
+    <label class="check"><input type="checkbox" name="charge_deposit" value="1" {{ 'checked' if form.get('charge_deposit') == '1' }}> Add the deposit to their account as a charge</label>
+    <label>Lease notes <textarea name="notes" rows="2" maxlength="500">{{ form.get('notes','') }}</textarea></label>
+    <p class="muted small">Leave “Start billing from” blank to bill from the lease start. Leave the end date blank for a month-to-month lease.</p>
+    
+    <h2>Privileges</h2>
+    <p class="muted small">Leave everything unticked for a normal tenant. Tick only what this account may do beyond its own tenant area.</p>
+    <div class="grid">
+      {% for code, label in PERMISSIONS.items() %}
+      <label class="check"><input type="checkbox" name="permissions" value="{{ code }}"> {{ label }}</label>
+      {% endfor %}
+    </div>
+
+<button class="btn" type="submit">Create tenant</button>
+  </form>
+</section>
+{% endblock %}

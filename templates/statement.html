@@ -1,0 +1,42 @@
+{% extends "base.html" %}
+{% block title %}Statement · {{ brand.name }}{% endblock %}
+{% block content %}
+<section class="panel paper-doc">
+  <div class="print-brand always">{% if brand.has_logo %}<img src="{{ brand.logo_url }}" alt="">{% endif %}<span>{{ brand.name }}</span></div>
+  <div class="bar">
+    <div><h1>Statement of account</h1><p class="muted">{{ t['business_name'] or t['full_name'] }} · {{ t['id'] }} · as at {{ today|string|fdate }}</p></div>
+    <div class="row nowrap noprint">
+      <button class="btn" id="print-btn" type="button">Print / PDF</button>
+      <a class="btn ghost" href="{{ url_for('admin_statement_xlsx', tid=t['id']) if is_admin else url_for('statement_xlsx') }}">Download Excel</a>
+      {% if is_admin %}<a class="btn ghost" href="{{ url_for('admin_tenant', tid=t['id']) }}">Back to tenant</a>{% endif %}
+    </div>
+  </div>
+  {% if leases %}<p class="small">{% for l in leases %}{{ unit_name(l['unit_code']) }} · rent {{ l['rent_cents']|money }} due on day {{ l['due_day'] }} each month{{ ' · ' if not loop.last }}{% endfor %}</p>{% endif %}
+  <div class="stats stats4 inner">
+    <div><strong>{{ led.balance|money }}</strong><span>{{ 'Balance (in credit)' if led.balance < 0 else 'Balance owing' }}</span></div>
+    <div class="{{ 'alert' if led.overdue }}"><strong>{{ led.overdue|money }}</strong><span>Overdue now</span></div>
+    <div><strong>{{ led.next_due['due_date']|fdate if led.next_due else '—' }}</strong><span>Next due</span></div>
+  </div>
+  <div class="scroll">
+  <table>
+    <thead><tr><th>Date</th><th>Description</th><th class="num">Charges</th><th class="num">Payments</th><th class="num">Balance</th></tr></thead>
+    <tbody>
+    {% for l in lines %}
+      <tr>
+        <td>{{ l.date|fdate }}</td>
+        <td>{% if l.payment_id %}<a href="{{ url_for('receipt', pid=l.payment_id) }}">{{ l.description }}</a>{% else %}{{ l.description }}{% endif %}</td>
+        <td class="num">{{ l.debit|money if l.debit else '' }}</td>
+        <td class="num">{{ l.credit|money if l.credit else '' }}</td>
+        <td class="num">{{ l.balance|money }}</td>
+      </tr>
+    {% else %}
+      <tr><td colspan="5" class="muted">Nothing on the account yet.</td></tr>
+    {% endfor %}
+    </tbody>
+  </table>
+  </div>
+  {% if led.overdue %}<p class="small">Overdue by age: 1–30 days {{ led.buckets['1-30']|money }} · 31–60 days {{ led.buckets['31-60']|money }} · over 60 days {{ led.buckets['61+']|money }}</p>{% endif %}
+  {% if prem.pay_info %}<h2>How to pay</h2><p class="prewrap">{{ prem.pay_info }}</p>{% endif %}
+</section>
+{% endblock %}
+{% block scripts %}<script src="{{ url_for('static', filename='print.js') }}" defer></script>{% endblock %}

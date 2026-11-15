@@ -1,0 +1,97 @@
+{% extends "base.html" %}
+{% block title %}Website · {{ brand.name }}{% endblock %}
+{% block content %}
+<section class="panel">
+  <h1>Website</h1>
+  <p class="muted">Everything visitors see lives here. The home page is built from sections you can switch on, off and reorder; you can add extra pages such as About or House rules; and developers can plug in new features (see docs/EXTENDING.md).</p>
+  <ul class="plain">
+    <li><a href="{{ url_for('home') }}">View the home page</a></li>
+    <li><a href="{{ url_for('admin_branding') }}">Property name and logo</a></li>
+    <li><a href="{{ url_for('admin_photos') }}">Photos and welcome message</a></li>
+    <li><a href="{{ url_for('admin_enquiries') }}">Enquiries from the contact form</a>{% if enquiries_new %} <span class="badge">{{ enquiries_new }} new</span>{% endif %}</li>
+  </ul>
+</section>
+<section class="panel">
+  <h2>Home page sections</h2>
+  <form method="post" action="{{ url_for('website_sections') }}" class="stack">
+    <input type="hidden" name="_csrf" value="{{ csrf_token() }}">
+    <div class="scroll"><table>
+      <thead><tr><th>Section</th><th>Shown</th><th>Order</th></tr></thead>
+      <tbody>
+      {% for s in sections %}
+        <tr>
+          <td><strong>{{ s.title }}</strong><br><span class="muted small">{{ s.note }}</span></td>
+          <td>{% if s.locked %}<span class="muted small">Always</span>{% else %}<label class="check"><input type="checkbox" name="show_{{ s.key }}" value="1" {{ 'checked' if s.key not in cfg.off }}> Show</label>{% endif %}</td>
+          <td><input type="number" name="order_{{ s.key }}" value="{{ loop.index * 10 }}" min="0" max="999" aria-label="Order of {{ s.title }}"></td>
+        </tr>
+      {% endfor %}
+      </tbody>
+    </table></div>
+    <p class="muted small">Sections appear from the lowest number to the highest.</p>
+    <p><button class="btn" type="submit">Save sections</button></p>
+  </form>
+</section>
+<section class="panel">
+  <h2>Contact details</h2>
+  <p class="muted small">Shown next to the contact form. Leave a box empty to hide it.</p>
+  <form method="post" action="{{ url_for('website_contact') }}" class="grid">
+    <input type="hidden" name="_csrf" value="{{ csrf_token() }}">
+    <label>Phone <input name="phone" value="{{ contact.phone }}" maxlength="30"></label>
+    <label>Email <input type="email" name="email" value="{{ contact.email }}" maxlength="120"></label>
+    <label>Address <input name="address" value="{{ contact.address }}" maxlength="200"></label>
+    <label>Opening hours <input name="hours" value="{{ contact.hours }}" maxlength="200" placeholder="e.g. Mon to Fri, 8:00 to 17:00"></label>
+    <div class="end"><button class="btn" type="submit">Save contact details</button></div>
+  </form>
+</section>
+<section class="panel">
+  <h2>Pages</h2>
+  <div class="scroll"><table>
+    <thead><tr><th>Title</th><th>Address</th><th>Status</th><th></th></tr></thead>
+    <tbody>
+    {% for p in pages %}
+      <tr>
+        <td>{{ p['title'] }}</td>
+        <td class="mono small">/p/{{ p['slug'] }}</td>
+        <td>{{ 'Published' if p['published'] else 'Draft' }}{% if p['published'] and p['in_menu'] %} · in menu{% endif %}</td>
+        <td class="actions">
+          <a class="btn ghost small" href="{{ url_for('page_edit', pid=p['id']) }}">Edit</a>
+          <details class="confirm"><summary class="btn danger small">Delete</summary>
+            <form method="post" action="{{ url_for('page_delete', pid=p['id']) }}"><input type="hidden" name="_csrf" value="{{ csrf_token() }}"><p class="small">Delete “{{ p['title'] }}” for good?</p><button class="btn danger small" type="submit">Yes, delete</button></form>
+          </details>
+        </td>
+      </tr>
+    {% else %}
+      <tr><td colspan="4" class="muted">No extra pages yet.</td></tr>
+    {% endfor %}
+    </tbody>
+  </table></div>
+  <form method="post" action="{{ url_for('page_new') }}" class="row">
+    <input type="hidden" name="_csrf" value="{{ csrf_token() }}">
+    <label>New page title <input name="title" maxlength="100" placeholder="e.g. About us, House rules, FAQ" required></label>
+    <button class="btn" type="submit">Create page</button>
+  </form>
+</section>
+<section class="panel">
+  <h2>Extensions</h2>
+  <ul class="plain">
+  {% for x in extensions %}
+    <li>{{ x.name }} · {% if x.ok %}loaded{% else %}<span class="err">failed: {{ x.error }}</span>{% endif %}</li>
+  {% else %}
+    <li class="muted">No extensions installed. A developer adds one by dropping a .py file in the ext folder.</li>
+  {% endfor %}
+  </ul>
+</section>
+
+<section class="panel">
+  <h2>Site colours</h2>
+  <p class="muted small">Pick readable combinations — dark text on a light bar, or white text on a dark bar. Leave the defaults to undo.</p>
+  <form method="post" action="{{ url_for('website_colours') }}" class="stack">
+    <input type="hidden" name="_csrf" value="{{ csrf_token() }}">
+    <label>Page background <input type="color" name="body_color" value="{{ theme.body_color }}"></label>
+    <label>Navigation bar <input type="color" name="navbar_color" value="{{ theme.navbar_color }}"></label>
+    <label>Navigation text <input type="color" name="navbar_text_color" value="{{ theme.navbar_text_color }}"></label>
+    <button class="btn" type="submit">Save colours</button>
+  </form>
+</section>
+
+{% endblock %}

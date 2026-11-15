@@ -1,0 +1,14 @@
+<svg class="plan" viewBox="0 0 {{ plan.vw }} {{ plan.vh }}" role="img" aria-label="Plan of the premises">
+  <rect class="building" x="{{ plan.building.x }}" y="{{ plan.building.y }}" width="{{ plan.building.w }}" height="{{ plan.building.h }}"></rect>
+  {% for r in plan.rects %}
+    {% if r.href %}<a href="{{ r.href }}">{% endif %}
+    <g class="unit {{ r.cls }}">
+      <title>{{ r.title }}</title>
+      <rect x="{{ r.x }}" y="{{ r.y }}" width="{{ r.w }}" height="{{ r.h }}" rx="4"></rect>
+      <text x="{{ r.cx }}" y="{{ r.cy }}" text-anchor="middle">{% for line in r.lines %}<tspan x="{{ r.cx }}" dy="{{ 0 if loop.first else 22 }}" class="{{ 'l1' if loop.first else 'l2' }}">{{ line }}</tspan>{% endfor %}</text>
+    </g>
+    {% if r.href %}</a>{% endif %}
+  {% endfor %}
+  <text class="street" x="{{ plan.vw / 2 }}" y="{{ plan.street_y }}" text-anchor="middle">Street · front of the building</text>
+</svg>
+<p class="muted small">{% if plan.measured %}Drawn to scale from the building measurements.{% else %}A schematic: add the building measurements under Premises to draw it to scale.{% endif %}</p>

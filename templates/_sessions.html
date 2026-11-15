@@ -1,0 +1,16 @@
+<table>
+  <thead><tr><th>Signed in</th><th>Signed out</th><th>Length</th><th>Outcome</th></tr></thead>
+  <tbody>
+  {% for s in sessions %}
+    <tr>
+      <td>{{ s['login_at']|local }}</td>
+      <td>{{ s['logout_at']|local }}</td>
+      <td>{{ s|duration }}</td>
+      <td>{{ s|status }}</td>
+    </tr>
+  {% else %}
+    <tr><td colspan="4" class="muted">No sign-ins yet.</td></tr>
+  {% endfor %}
+  </tbody>
+</table>
+<p class="muted small">Times are shown in {{ tz_label }}.</p>

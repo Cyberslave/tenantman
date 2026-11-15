@@ -1,0 +1,43 @@
+{% extends "base.html" %}
+{% block title %}{{ 'Edit event' if ev else 'New event' }} · {{ brand.name }}{% endblock %}
+{% block content %}
+<section class="panel narrow wide">
+  <h1>{{ 'Edit event' if ev else 'New event' }}</h1>
+  <form method="post" class="stack">
+    <input type="hidden" name="_csrf" value="{{ csrf_token() }}">
+    <label>Title <input name="title" value="{{ form.get('title','') }}" maxlength="150" required autofocus></label>
+    <div class="grid">
+      <label>Start date <input type="date" name="start_date" value="{{ form.get('start_date','') }}" required></label>
+      <label>Start time <input type="time" name="start_time" value="{{ form.get('start_time','') }}"></label>
+      <label>End date (optional) <input type="date" name="end_date" value="{{ form.get('end_date','') }}"></label>
+      <label>End time (optional) <input type="time" name="end_time" value="{{ form.get('end_time','') }}"></label>
+    </div>
+    <p class="muted small">Leave the end blank for a one-hour event on the start date.</p>
+    <label class="check"><input type="checkbox" name="all_day" value="1" {{ 'checked' if form.get('all_day') == '1' }}> All-day event (times are ignored)</label>
+    <label>Location <input name="location" value="{{ form.get('location','') }}" maxlength="150"></label>
+    <label>Notes <textarea name="description" rows="3" maxlength="2000">{{ form.get('description','') }}</textarea></label>
+    <label>Reminder
+      <select name="reminder">
+        {% for val, text in REMINDER_CHOICES %}<option value="{{ val }}" {{ 'selected' if form.get('reminder','') == val }}>{{ text }}</option>{% endfor %}
+      </select>
+    </label>
+    {% if g.user.is_admin %}
+    <label class="check"><input type="checkbox" name="everyone" value="1" {{ 'checked' if form.get('everyone') == '1' }}> Company-wide event (everyone is notified and sees it)</label>
+    {% endif %}
+    <fieldset>
+      <legend>Invite tenants</legend>
+      <div class="pick">
+        {% for p in people %}
+          <label class="check"><input type="checkbox" name="attendees" value="{{ p['ref'] }}" {{ 'checked' if p['ref'] in selected }}> {{ p['full_name'] }} <span class="muted small">· {{ role_label(p) }}</span></label>
+        {% else %}
+          <p class="muted">There are no other tenants yet.</p>
+        {% endfor %}
+      </div>
+    </fieldset>
+    <div class="row">
+      <button class="btn" type="submit">{{ 'Save event' if ev else 'Create event' }}</button>
+      <a class="btn ghost" href="{{ url_for('event_detail', event_id=ev['id']) if ev else url_for('calendar_view') }}">Cancel</a>
+    </div>
+  </form>
+</section>
+{% endblock %}

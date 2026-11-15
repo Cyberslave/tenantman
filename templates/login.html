@@ -1,0 +1,20 @@
+{% extends "base.html" %}
+{% block title %}Sign in · {{ brand.name }}{% endblock %}
+{% block content %}
+<section class="panel narrow">
+  <div class="loginbrand">{% if brand.has_logo %}<img src="{{ brand.logo_url }}" alt="{{ brand.name }} logo">{% endif %}<p class="company">{{ brand.name }}</p></div>
+  <h1>Sign in</h1>
+  <p class="muted">Use the tenant ID your administrator gave you.</p>
+  <form method="post" class="stack">
+    <input type="hidden" name="_csrf" value="{{ csrf_token() }}">
+    <label>Tenant ID
+      <input name="tenant_id" class="mono" placeholder="FRL-26-7K2Q" autocomplete="username" autocapitalize="characters" required autofocus>
+    </label>
+    <label>Password
+      <input type="password" name="password" autocomplete="current-password" required>
+    </label>
+    <button class="btn" type="submit">Sign in</button>
+  </form>
+  <p class="muted small">Every sign-in and sign-out is recorded.</p>
+</section>
+{% endblock %}

@@ -1,0 +1,25 @@
+{% extends "base.html" %}
+{% block title %}Messages · {{ brand.name }}{% endblock %}
+{% block content %}
+<section class="panel">
+  <div class="bar">
+    <h1>Messages</h1>
+    <a class="btn" href="{{ url_for('message_compose') }}">New message</a>
+  </div>
+  <p class="muted small">Messages are private between you and the person you write to.</p>
+  <ul class="convs">
+  {% for c in items %}
+    <li>
+      <a href="{{ url_for('message_thread', ref=c.other['ref']) }}" class="{{ 'unread' if c.unread }}">
+        <strong>{{ c.other['full_name'] }}</strong>
+        {% if c.unread %}<span class="badge">{{ c.unread }}</span>{% endif %}
+        <span class="preview">{{ 'You: ' if c.mine }}{{ c.last['body'][:90] }}</span>
+        <span class="small muted">{{ c.last['created_at']|local }}</span>
+      </a>
+    </li>
+  {% else %}
+    <li class="muted">No conversations yet. Start one with “New message”.</li>
+  {% endfor %}
+  </ul>
+</section>
+{% endblock %}

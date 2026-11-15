@@ -1,0 +1,20 @@
+{% extends "base.html" %}
+{% block title %}Receipt {{ p['receipt_no'] }} · {{ brand.name }}{% endblock %}
+{% block content %}
+<section class="panel paper-doc receipt {{ 'is-void' if p['voided_at'] }}">
+  <div class="print-brand always">{% if brand.has_logo %}<img src="{{ brand.logo_url }}" alt="">{% endif %}<span>{{ brand.name }}</span></div>
+  <div class="bar"><h1>Receipt {{ p['receipt_no'] }}</h1><button class="btn noprint" id="print" type="button">Print / PDF</button></div>
+  {% if p['voided_at'] %}<p class="flash error">This payment was cancelled: {{ p['void_reason'] }}</p>{% endif %}
+  <dl class="creds">
+    <dt>Received from</dt><dd>{{ t['business_name'] or t['full_name'] }}<br><span class="small muted">{{ t['id'] }}</span></dd>
+    <dt>Amount</dt><dd>{{ p['amount_cents']|money }}</dd>
+    <dt>Date paid</dt><dd>{{ p['paid_on']|fdate }}</dd>
+    <dt>Method</dt><dd>{{ p['method'] }}{% if p['reference'] %} · {{ p['reference'] }}{% endif %}</dd>
+    <dt>Balance after this payment</dt><dd>{{ balance_after|money }}{% if balance_after < 0 %} (in credit){% endif %}</dd>
+  </dl>
+  {% if p['note'] %}<p class="small">{{ p['note'] }}</p>{% endif %}
+  <p class="small muted">Thank you. This receipt was issued on {{ p['created_at']|local }}.</p>
+  <p class="noprint"><a href="{{ url_for('admin_tenant', tid=t['id']) if g.user.is_admin else url_for('statement') }}">Back to the account</a></p>
+</section>
+{% endblock %}
+{% block scripts %}<script src="{{ url_for('static', filename='print.js') }}" defer></script>{% endblock %}

@@ -1,0 +1,16 @@
+{% extends "base.html" %}
+{% block title %}{{ 'Password reset' if reset else 'Tenant added' }} · {{ brand.name }}{% endblock %}
+{% block content %}
+<section class="panel narrow">
+  <h1>{{ 'Password reset' if reset else 'Tenant added' }}</h1>
+  <p>Give these sign-in details to {{ t['full_name'] }}{% if t['business_name'] %} ({{ t['business_name'] }}){% endif %}. The password is shown only once, and they must replace it at first sign-in.</p>
+  <dl class="creds">
+    <dt>Tenant ID</dt><dd class="mono">{{ t['id'] }}</dd>
+    <dt>Temporary password</dt><dd class="mono">{{ password }}</dd>
+  </dl>
+  <p class="row">
+    <a class="btn" href="{{ url_for('admin_tenant', tid=t['id']) }}">Open tenant file</a>
+    <a class="btn ghost" href="{{ url_for('admin_new') }}">Add another tenant</a>
+  </p>
+</section>
+{% endblock %}

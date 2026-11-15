@@ -1,0 +1,58 @@
+{% extends "base.html" %}
+{% block title %}Premises · {{ brand.name }}{% endblock %}
+{% block content %}
+<section class="panel">
+  <h1>Premises</h1>
+  <p class="muted">The building is a rectangle. The two front compartments together have the same width and depth as the rear compartment, and there is a separate yard. Enter the measurements and the plan is drawn to scale.</p>
+  {% include "_plan.html" %}
+</section>
+<form method="post">
+  <input type="hidden" name="_csrf" value="{{ csrf_token() }}">
+  <section class="panel">
+    <h2>Measurements (metres)</h2>
+    <div class="grid">
+      <label>Building width (side to side) <input name="bld_width" inputmode="decimal" value="{{ prem.bld_width or '' }}"></label>
+      <label>Building depth (front to back) <input name="bld_depth" inputmode="decimal" value="{{ prem.bld_depth or '' }}"></label>
+      <label>Front left share of the width (%) <input name="split_pct" inputmode="decimal" value="{{ '%g'|format(prem.split_pct) }}"></label>
+    </div>
+    <p class="muted small">The rear compartment spans the full width and the back half of the depth. The front half is split into front left and front right. Use 50 if they are equal.</p>
+    <div class="grid">
+      <label>Yard is at the
+        <select name="yard_side">{% for s in yard_sides %}<option value="{{ s }}" {{ 'selected' if prem.yard_side == s }}>{{ {'rear': 'rear (behind the building)', 'front': 'front (between the building and the street)', 'left': 'left side', 'right': 'right side'}[s] }}</option>{% endfor %}</select>
+      </label>
+      <label>Yard width <input name="yard_width" inputmode="decimal" value="{{ prem.yard_width or '' }}"></label>
+      <label>Yard depth <input name="yard_depth" inputmode="decimal" value="{{ prem.yard_depth or '' }}"></label>
+    </div>
+  </section>
+  <section class="panel">
+    <h2>The four spaces</h2>
+    <div class="scroll">
+    <table>
+      <thead><tr><th>Code</th><th>Name</th><th>Area m² (measured)</th><th>Standard rent</th><th>Notes</th></tr></thead>
+      <tbody>
+      {% for u in units %}
+        <tr>
+          <td><span class="idtag lv-{{ u['code'] }}">{{ u['code'] }}</span></td>
+          <td><input name="name_{{ u['code'] }}" value="{{ u['name'] }}" maxlength="60" aria-label="Name of {{ u['code'] }}"></td>
+          <td><input name="area_{{ u['code'] }}" inputmode="decimal" value="{{ u['area_m2'] or '' }}" placeholder="{{ '≈ %.1f'|format(areas[u['code']][0]) if areas[u['code']][0] else '' }}" aria-label="Area of {{ u['code'] }}"></td>
+          <td><input name="rent_{{ u['code'] }}" inputmode="decimal" value="{{ '%.2f'|format(u['rent_cents'] / 100) if u['rent_cents'] else '' }}" aria-label="Standard rent of {{ u['code'] }}"></td>
+          <td><input name="notes_{{ u['code'] }}" value="{{ u['notes'] or '' }}" maxlength="300" aria-label="Notes on {{ u['code'] }}"></td>
+        </tr>
+      {% endfor %}
+      </tbody>
+    </table>
+    </div>
+    <p class="muted small">Tenant IDs start with the code of the space first rented, for example FRL-26-7K2Q. A tenant can later lease more than one space. A greyed area is worked out from the measurements; type a figure to use your own.</p>
+  </section>
+  <section class="panel">
+    <h2>Money</h2>
+    <div class="grid">
+      <label>Currency symbol (shown before amounts) <input name="currency" maxlength="6" value="{{ prem.currency }}" placeholder="e.g. M or R or $"></label>
+    </div>
+    <label>How tenants should pay (shown on statements and receipts)
+      <textarea name="pay_info" rows="3" maxlength="1000" placeholder="Bank name, account number, reference to use, or where to pay in person">{{ prem.pay_info }}</textarea>
+    </label>
+    <p><button class="btn" type="submit">Save premises</button></p>
+  </section>
+</form>
+{% endblock %}

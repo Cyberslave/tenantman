@@ -1,0 +1,33 @@
+{% extends "base.html" %}
+{% block title %}Maintenance requests · {{ brand.name }}{% endblock %}
+{% block content %}
+<section class="panel">
+  <div class="bar"><h1>Maintenance requests</h1>{% if not g.user.is_admin %}<a class="btn" href="{{ url_for('request_new') }}">Report a problem</a>{% endif %}</div>
+  <form method="get" class="row filter">
+    <label>Status
+      <select name="status"><option value="">All</option><option value="active" {{ 'selected' if status == 'active' }}>Open or in progress</option>{% for k, label in statuses %}<option value="{{ k }}" {{ 'selected' if status == k }}>{{ label }}</option>{% endfor %}</select>
+    </label>
+    {% if g.user.is_admin %}<label>Space<select name="unit"><option value="">All</option>{% for code in LEVELS %}<option value="{{ code }}" {{ 'selected' if unit == code }}>{{ unit_name(code) }}</option>{% endfor %}</select></label>{% endif %}
+    <button class="btn ghost" type="submit">Filter</button>
+  </form>
+  <div class="scroll">
+  <table>
+    <thead><tr><th>Request</th>{% if g.user.is_admin %}<th>Tenant</th>{% endif %}<th>Space</th><th>Priority</th><th>Status</th><th>Updated</th></tr></thead>
+    <tbody>
+    {% for r in rows %}
+      <tr>
+        <td><a href="{{ url_for('request_detail', rid=r['id']) }}">{{ r['title'] }}</a></td>
+        {% if g.user.is_admin %}<td>{{ r['business_name'] or r['full_name'] }}</td>{% endif %}
+        <td>{{ unit_name(r['unit_code']) if r['unit_code'] else 'Common area / other' }}</td>
+        <td><span class="chip-s p-{{ r['priority'] }}">{{ r['priority']|label }}</span></td>
+        <td><span class="chip-s s-{{ r['status'] }}">{{ r['status']|label }}</span></td>
+        <td>{{ r['updated_at']|local }}</td>
+      </tr>
+    {% else %}
+      <tr><td colspan="6" class="muted">No requests.</td></tr>
+    {% endfor %}
+    </tbody>
+  </table>
+  </div>
+</section>
+{% endblock %}

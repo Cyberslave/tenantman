@@ -1,0 +1,9 @@
+{% extends "base.html" %}
+{% block title %}{{ page['title'] }} · {{ brand.name }}{% endblock %}
+{% block content %}
+<article class="panel prose sitepage">
+  {% if not page['published'] %}<p class="flash">This page is a draft. Only you can see it. <a href="{{ url_for('page_edit', pid=page['id']) }}">Edit it</a></p>{% endif %}
+  <h1>{{ page['title'] }}</h1>
+  {{ body|safe }}
+</article>
+{% endblock %}

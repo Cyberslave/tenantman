@@ -1,0 +1,23 @@
+{% extends "base.html" %}
+{% block title %}Alerts · {{ brand.name }}{% endblock %}
+{% block content %}
+<section class="panel">
+  <div class="bar">
+    <h1>Alerts</h1>
+    <div class="row nowrap">
+      <button class="btn ghost" id="enable-alerts" type="button">Turn on desktop alerts</button>
+      <form method="post" action="{{ url_for('notifications_read_all') }}"><input type="hidden" name="_csrf" value="{{ csrf_token() }}"><button class="btn ghost" type="submit">Mark all as read</button></form>
+    </div>
+  </div>
+  <p class="muted small">Event reminders appear here while this app is open, or the next time you sign in. Desktop alerts only work while a tab of this app is open.</p>
+  <ul class="notes">
+  {% for n in rows %}
+    <li class="{{ 'unread' if not n['read_at'] }}">
+      <a href="{{ url_for('notification_open', nid=n['id']) }}"><strong>{{ n['title'] }}</strong>{% if n['body'] %}<span>{{ n['body'] }}</span>{% endif %}<span class="small muted">{{ n['created_at']|local }}</span></a>
+    </li>
+  {% else %}
+    <li class="muted">No alerts yet. Invitations, shared documents and event reminders will show up here.</li>
+  {% endfor %}
+  </ul>
+</section>
+{% endblock %}

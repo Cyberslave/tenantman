@@ -1,0 +1,9 @@
+{% extends "base.html" %}
+{% block title %}{{ code }} · {{ brand.name }}{% endblock %}
+{% block content %}
+<section class="panel narrow">
+  <h1>{{ code }}</h1>
+  <p>{{ msg }}</p>
+  <p><a class="btn" href="{{ url_for('dashboard') }}">Go to your home page</a></p>
+</section>
+{% endblock %}

@@ -1,0 +1,24 @@
+{% extends "base.html" %}
+{% block title %}Enquiry from {{ e['name'] }} · {{ brand.name }}{% endblock %}
+{% block content %}
+<section class="panel narrow wide">
+  <div class="bar"><h1>{{ e['name'] }}</h1><span class="chip-s s-{{ 'open' if e['status'] == 'new' else 'closed' }}">{{ e['status']|capitalize }}</span></div>
+  <p class="muted">{{ topics.get(e['topic'], e['topic']) }}{% if unit_name %} · interested in the {{ unit_name|lower }}{% endif %} · received {{ e['created_at']|local }}</p>
+  <p class="prewrap">{{ e['message'] }}</p>
+  <p>
+    {% if e['email'] %}<a class="btn" href="mailto:{{ e['email'] }}?subject={{ ('Re: ' ~ brand.name ~ ' enquiry')|urlencode }}">Reply by email</a>{% endif %}
+    {% if e['phone'] %}<a class="btn ghost" href="{{ 'tel:' ~ tel if tel else '#' }}">Call {{ e['phone'] }}</a>{% endif %}
+  </p>
+  <p class="small muted">{% if e['email'] %}Email: {{ e['email'] }}{% endif %}{% if e['email'] and e['phone'] %} · {% endif %}{% if e['phone'] %}Phone: {{ e['phone'] }}{% endif %}</p>
+  <form method="post" action="{{ url_for('enquiry_status', eid=e['id']) }}" class="row nowrap">
+    <input type="hidden" name="_csrf" value="{{ csrf_token() }}">
+    <button class="btn ghost small" name="status" value="replied" type="submit">Mark as replied</button>
+    <button class="btn ghost small" name="status" value="archived" type="submit">Archive</button>
+    <button class="btn ghost small" name="status" value="read" type="submit">Mark as read</button>
+  </form>
+  <details class="confirm top-gap"><summary class="btn danger small">Delete</summary>
+    <form method="post" action="{{ url_for('enquiry_delete', eid=e['id']) }}"><input type="hidden" name="_csrf" value="{{ csrf_token() }}"><p class="small">Delete this enquiry for good? (Do this for spam, or when you no longer need to keep the person's details.)</p><button class="btn danger small" type="submit">Yes, delete</button></form>
+  </details>
+  <p><a href="{{ url_for('admin_enquiries') }}">All enquiries</a></p>
+</section>
+{% endblock %}

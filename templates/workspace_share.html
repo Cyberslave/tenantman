@@ -1,0 +1,39 @@
+{% extends "base.html" %}
+{% block title %}Share · {{ brand.name }}{% endblock %}
+{% block content %}
+<section class="panel narrow">
+  <h1>Share “{{ doc['title'] }}”</h1>
+  <h2>People with access</h2>
+  <table>
+    <tbody>
+    {% for s in shares %}
+      <tr>
+        <td>{{ s['full_name'] }}<br><span class="muted small">{{ role_label(s) }}</span></td>
+        <td>{{ 'Can edit' if s['can_edit'] else 'View only' }}</td>
+        <td>
+          <form method="post"><input type="hidden" name="_csrf" value="{{ csrf_token() }}"><input type="hidden" name="action" value="remove"><input type="hidden" name="ref" value="{{ s['ref'] }}"><button class="btn danger small" type="submit">Remove</button></form>
+        </td>
+      </tr>
+    {% else %}
+      <tr><td class="muted">Only you can open this document.</td></tr>
+    {% endfor %}
+    </tbody>
+  </table>
+  <h2>Add someone</h2>
+  <form method="post" class="stack">
+    <input type="hidden" name="_csrf" value="{{ csrf_token() }}">
+    <input type="hidden" name="action" value="add">
+    <label>Person
+      <select name="ref" required>
+        <option value="">Choose a person</option>
+        {% for p in candidates %}<option value="{{ p['ref'] }}">{{ p['full_name'] }} · {{ role_label(p) }}</option>{% endfor %}
+      </select>
+    </label>
+    <label>Access
+      <select name="perm"><option value="view">View only</option><option value="edit">Can edit</option></select>
+    </label>
+    <button class="btn" type="submit">Share</button>
+  </form>
+  <p><a href="{{ url_for('workspace_open', doc_id=doc['id']) }}">Back to the document</a></p>
+</section>
+{% endblock %}

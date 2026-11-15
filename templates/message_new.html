@@ -1,0 +1,35 @@
+{% extends "base.html" %}
+{% block title %}New message · {{ brand.name }}{% endblock %}
+{% block content %}
+<section class="panel">
+  <h1>New message</h1>
+  <form method="get" class="row filter">
+    <label>Find a person <input name="q" value="{{ q }}" placeholder="Name or business"></label>
+    <button class="btn ghost" type="submit">Search</button>
+  </form>
+  <ul class="convs">
+  {% for p in people %}
+    <li><a href="{{ url_for('message_thread', ref=p['ref']) }}"><strong>{{ p['full_name'] }}</strong><span class="preview">{{ role_label(p) }}</span></a></li>
+  {% else %}
+    <li class="muted">No one matches that search.</li>
+  {% endfor %}
+  </ul>
+</section>
+{% if g.user.is_admin %}
+<section class="panel narrow wide">
+  <h2>Message many tenants</h2>
+  <p class="muted small">Each person gets this as a private message and can reply to you.</p>
+  <form method="post" action="{{ url_for('message_broadcast') }}" class="stack">
+    <input type="hidden" name="_csrf" value="{{ csrf_token() }}">
+    <label>Send to
+      <select name="audience">
+        <option value="all">All tenants</option>
+        {% for code in LEVELS %}<option value="{{ code }}">Tenant of the {{ unit_name(code)|lower }}</option>{% endfor %}
+      </select>
+    </label>
+    <label>Message <textarea name="body" rows="4" maxlength="4000" required></textarea></label>
+    <button class="btn" type="submit">Send</button>
+  </form>
+</section>
+{% endif %}
+{% endblock %}

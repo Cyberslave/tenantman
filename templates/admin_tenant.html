@@ -1,0 +1,219 @@
+{% extends "base.html" %}
+{% block title %}{{ t['business_name'] or t['full_name'] }} · {{ brand.name }}
+<section class="panel">
+  <h2>Privileges</h2>
+  {% if g.user.is_admin %}
+  <form method="post" action="{{ url_for('admin_tenant_permissions', tid=t['id']) }}" class="stack">
+    <input type="hidden" name="_csrf" value="{{ csrf_token() }}">
+    <div class="grid">
+      {% for code, label in PERMISSIONS.items() %}
+      <label class="check"><input type="checkbox" name="permissions" value="{{ code }}"
+        {% if code in (t['permissions']|from_json) %}checked{% endif %}> {{ label }}</label>
+      {% endfor %}
+    </div>
+    <button class="btn" type="submit">Save privileges</button>
+  </form>
+  {% else %}
+  <p class="muted">Only an administrator can change privileges.</p>
+  {% endif %}
+</section>
+
+{% endblock %}
+{% block content %}
+<section class="panel">
+  <div class="filehead">
+    <span class="idtag lv-{{ t['level'] }}">{{ t['id'] }}</span>
+    <h1>{{ t['business_name'] or t['full_name'] }}</h1>
+  </div>
+  <p class="muted">{{ t['full_name'] }}{% if t['trade'] %} · {{ t['trade'] }}{% endif %}{% if t['phone'] %} · {{ t['phone'] }}{% endif %}{% if t['email'] %} · {{ t['email'] }}{% endif %}</p>
+  <div class="stats stats4 inner">
+    <div><strong>{{ led.balance|money }}</strong><span>Balance{% if led.credit %} (in credit){% endif %}</span></div>
+    <div class="{{ 'alert' if led.overdue }}"><strong>{{ led.overdue|money }}</strong><span>Overdue</span></div>
+    <div><strong>{{ led.next_due['due_date']|fdate if led.next_due else '—' }}</strong><span>Next payment due</span></div>
+    <div class="actions2"><a class="btn ghost small" href="{{ url_for('admin_statement', tid=t['id']) }}">Statement</a> <a class="btn ghost small" href="{{ url_for('admin_statement_xlsx', tid=t['id']) }}">Excel</a></div>
+  </div>
+  <form method="post" action="{{ url_for('admin_edit', tid=t['id']) }}" class="grid">
+    <input type="hidden" name="_csrf" value="{{ csrf_token() }}">
+    <label>Contact person <input name="full_name" value="{{ t['full_name'] }}" required></label>
+    <label>Business name <input name="business_name" value="{{ t['business_name'] or '' }}"></label>
+    <label>Type of business <input name="trade" value="{{ t['trade'] or '' }}"></label>
+    <label>Email <input type="email" name="email" value="{{ t['email'] or '' }}"></label>
+    <label>Phone <input name="phone" value="{{ t['phone'] or '' }}"></label>
+    <div class="end"><button class="btn" type="submit">Save details</button></div>
+  </form>
+</section>
+
+<section class="panel">
+  <h2>Leases</h2>
+  <div class="scroll">
+  <table>
+    <thead><tr><th>Space</th><th>Term</th><th class="num">Rent</th><th>Due day</th><th>Status</th><th></th></tr></thead>
+    <tbody>
+    {% for l, state in leases %}
+      <tr>
+        <td>{{ unit_name(l['unit_code']) }}</td>
+        <td>{{ l['start_date']|fdate }} to {{ (l['ended_on'] or l['end_date'])|fdate if (l['ended_on'] or l['end_date']) else 'month to month' }}</td>
+        <td class="num">{{ l['rent_cents']|money }}</td>
+        <td>{{ l['due_day'] }}</td>
+        <td>{{ {'active': 'Active', 'future': 'Starts later', 'ended': 'Ended'}[state] }}</td>
+        <td class="actions">
+          {% if state != 'ended' or not l['ended_on'] %}
+          <details class="confirm"><summary class="btn ghost small">Edit</summary>
+            <form method="post" action="{{ url_for('lease_edit', lid=l['id']) }}" class="stack">
+              <input type="hidden" name="_csrf" value="{{ csrf_token() }}">
+              <label>Monthly rent <input name="rent" value="{{ '%.2f'|format(l['rent_cents'] / 100) }}"></label>
+              <label>Due day (1–28) <input type="number" name="due_day" min="1" max="28" value="{{ l['due_day'] }}"></label>
+              <label>Lease ends <input type="date" name="end_date" value="{{ l['end_date'] or '' }}"></label>
+              <label>Notes <input name="notes" value="{{ l['notes'] or '' }}"></label>
+              <button class="btn small" type="submit">Save lease</button>
+            </form>
+          </details>
+          {% endif %}
+          {% if not l['ended_on'] %}
+          <details class="confirm"><summary class="btn danger small">End lease</summary>
+            <form method="post" action="{{ url_for('lease_end', lid=l['id']) }}" class="stack">
+              <input type="hidden" name="_csrf" value="{{ csrf_token() }}">
+              <label>Last day of the lease <input type="date" name="ended_on" value="{{ today }}" required></label>
+              <p class="small">Rent is billed up to and including that month.</p>
+              <button class="btn danger small" type="submit">End lease</button>
+            </form>
+          </details>
+          {% endif %}
+        </td>
+      </tr>
+    {% else %}
+      <tr><td colspan="6" class="muted">No leases yet.</td></tr>
+    {% endfor %}
+    </tbody>
+  </table>
+  </div>
+  <details class="confirm"><summary class="btn ghost small">Add another lease for this tenant</summary>
+    <form method="post" action="{{ url_for('lease_add', tid=t['id']) }}" class="stack">
+      <input type="hidden" name="_csrf" value="{{ csrf_token() }}">
+      <div class="grid">
+        <label>Space <select name="unit" required><option value="">Choose</option>{% for s in spaces %}<option value="{{ s.code }}">{{ s.name }} ({{ s.note }})</option>{% endfor %}</select></label>
+        <label>Starts <input type="date" name="start_date" value="{{ today }}" required></label>
+        <label>Ends (optional) <input type="date" name="end_date"></label>
+        <label>Monthly rent <input name="rent" placeholder="Standard rent"></label>
+        <label>Deposit <input name="deposit"></label>
+        <label>Due day <input type="number" name="due_day" min="1" max="28" value="1"></label>
+      </div>
+      <label class="check"><input type="checkbox" name="charge_deposit" value="1" checked> Charge the deposit</label>
+      <button class="btn small" type="submit">Add lease</button>
+    </form>
+  </details>
+</section>
+
+<section class="panel">
+  <h2>Account</h2>
+  <div class="two inner">
+    <form method="post" action="{{ url_for('payment_add', tid=t['id']) }}" class="stack">
+      <input type="hidden" name="_csrf" value="{{ csrf_token() }}">
+      <h3>Record a payment</h3>
+      <div class="grid">
+        <label>Amount <input name="amount" inputmode="decimal" required></label>
+        <label>Date paid <input type="date" name="paid_on" value="{{ today }}" required></label>
+        <label>Method <select name="method">{% for m in PAY_METHODS %}<option>{{ m }}</option>{% endfor %}</select></label>
+        <label>Reference <input name="reference" maxlength="80"></label>
+      </div>
+      <label>Note <input name="note" maxlength="200"></label>
+      <button class="btn" type="submit">Record payment</button>
+    </form>
+    <form method="post" action="{{ url_for('charge_add', tid=t['id']) }}" class="stack">
+      <input type="hidden" name="_csrf" value="{{ csrf_token() }}">
+      <h3>Add a charge or credit</h3>
+      <div class="grid">
+        <label>Type <select name="kind">{% for k, label in charge_kinds %}<option value="{{ k }}">{{ label }}</option>{% endfor %}</select></label>
+        <label>Amount <input name="amount" inputmode="decimal" required></label>
+        <label>Due date <input type="date" name="due_date" value="{{ today }}" required></label>
+      </div>
+      <label>Description <input name="description" maxlength="150" required placeholder="e.g. Water, October"></label>
+      <p class="small muted">For an adjustment or credit, enter a negative amount.</p>
+      <button class="btn ghost" type="submit">Add charge</button>
+    </form>
+  </div>
+  <div class="scroll">
+  <table>
+    <thead><tr><th>Date</th><th>Entry</th><th class="num">Charge</th><th class="num">Payment</th><th></th></tr></thead>
+    <tbody>
+    {% for e in entries %}
+      <tr class="{{ 'void' if e.voided }}">
+        <td>{{ e.date|fdate }}</td>
+        <td>{% if e.type == 'payment' %}<a href="{{ url_for('receipt', pid=e.id) }}">Payment {{ e.receipt }}</a> · {{ e.desc }}{% else %}{{ e.desc }}{% endif %}{% if e.voided %}<br><span class="small">Cancelled: {{ e.reason }}</span>{% endif %}</td>
+        <td class="num">{% if e.type == 'charge' %}{{ e.amount|money }}{% endif %}</td>
+        <td class="num">{% if e.type == 'payment' %}{{ e.amount|money }}{% endif %}</td>
+        <td class="actions">{% if not e.voided %}
+          <details class="confirm"><summary class="btn danger small">Cancel</summary>
+            <form method="post" action="{{ url_for('payment_void' if e.type == 'payment' else 'charge_void', **({'pid': e.id} if e.type == 'payment' else {'cid': e.id})) }}" class="stack">
+              <input type="hidden" name="_csrf" value="{{ csrf_token() }}">
+              <label>Reason <input name="reason" maxlength="200" required></label>
+              <button class="btn danger small" type="submit">Cancel this entry</button>
+            </form>
+          </details>{% endif %}</td>
+      </tr>
+    {% else %}
+      <tr><td colspan="5" class="muted">Nothing on the account yet.</td></tr>
+    {% endfor %}
+    </tbody>
+  </table>
+  </div>
+  <p class="muted small">Payments settle the oldest charges first. Cancelled entries stay on record but do not count.</p>
+</section>
+
+<section class="panel">
+  <h2>Documents</h2>
+  <p class="muted small">Leases, ID copies, notices and proof of payment. Tenants can see everything in their folder.</p>
+  {% set admin = true %}{% set upload_url = url_for('admin_upload', tid=t['id']) %}
+  {% include "_docs.html" %}
+</section>
+<section class="panel">
+  <h2>Sign-in history</h2>
+  {% include "_sessions.html" %}
+  <p><a href="{{ url_for('admin_logs', tenant=t['id']) }}">See full activity for this tenant</a></p>
+</section>
+<section class="panel">
+  <h2>Sign-in help and removal</h2>
+  <form method="post" action="{{ url_for('admin_reset', tid=t['id']) }}" class="row">
+    <input type="hidden" name="_csrf" value="{{ csrf_token() }}">
+    <p class="grow">Issue a new temporary password. This also signs the tenant out and clears any lock.</p>
+    <button class="btn ghost" type="submit">Reset password</button>
+  </form>
+  <form method="post" action="{{ url_for('admin_remove', tid=t['id']) }}" class="danger-zone stack">
+    <input type="hidden" name="_csrf" value="{{ csrf_token() }}">
+    <h3>Remove tenant</h3>
+    <p>This deletes the account and signs the tenant out. Their folder, with a copy of their leases, charges, payments and requests, is moved to the archive.
+      {% if led.balance > 0 %}<strong class="err">They currently owe {{ led.balance|money }}.</strong>{% endif %}</p>
+    <label>Type <span class="mono">{{ t['id'] }}</span> to confirm <input name="confirm" class="mono" autocomplete="off" required></label>
+    <button class="btn danger" type="submit">Remove {{ t['business_name'] or t['full_name'] }}</button>
+  </form>
+</section>
+
+<section class="panel">
+  <h2>Lease agreements (with letterhead)</h2>
+  <p class="muted small">Download or print a formal agreement for any of this tenant's leases. Each one uses the company letterhead and the standard Lesotho clauses.</p>
+  {% if leases %}
+  <div class="scroll">
+  <table>
+    <thead><tr><th>Space</th><th>From</th><th>To</th><th>Rent</th><th></th></tr></thead>
+    <tbody>
+    {% for l, state in leases %}
+      <tr>
+        <td>{{ unit_name(l['unit_code']) }}</td>
+        <td>{{ l['start_date'] }}</td>
+        <td>{{ l['ended_on'] or l['end_date'] or 'month to month' }}</td>
+        <td>{{ l['rent_cents']|money }}</td>
+        <td>
+          <a class="btn ghost small" href="{{ url_for('lease_agreement', tid=t['id'], lease_id=l['id']) }}">Open</a>
+          <a class="btn ghost small" href="{{ url_for('lease_agreement_docx', tid=t['id'], lease_id=l['id']) }}">Word</a>
+        </td>
+      </tr>
+    {% endfor %}
+    </tbody>
+  </table>
+  </div>
+  {% else %}
+  <p class="muted">This tenant has no leases yet.</p>
+  {% endif %}
+</section>
+
+{% endblock %}

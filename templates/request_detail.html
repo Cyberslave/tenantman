@@ -1,0 +1,29 @@
+{% extends "base.html" %}
+{% block title %}{{ r['title'] }} · {{ brand.name }}{% endblock %}
+{% block content %}
+<section class="panel">
+  <div class="bar"><div><h1>{{ r['title'] }}</h1>
+    <p class="muted">{{ r['business_name'] or r['full_name'] }} · {{ unit_name(r['unit_code']) if r['unit_code'] else 'Common area / other' }} · sent {{ r['created_at']|local }}</p></div>
+    <div><span class="chip-s p-{{ r['priority'] }}">{{ r['priority']|label }}</span> <span class="chip-s s-{{ r['status'] }}">{{ r['status']|label }}</span></div></div>
+  <p class="prewrap">{{ r['description'] }}</p>
+</section>
+<section class="panel">
+  <h2>Updates</h2>
+  <ul class="thread">
+  {% for c in comments %}
+    <li class="{{ 'by-admin' if c['is_admin'] }}"><strong>{{ c['full_name'] }}{% if c['is_admin'] %} (landlord){% endif %}</strong> <span class="muted small">{{ c['created_at']|local }}</span><p class="prewrap">{{ c['body'] }}</p></li>
+  {% else %}
+    <li class="muted">No updates yet.</li>
+  {% endfor %}
+  </ul>
+  <form method="post" class="stack">
+    <input type="hidden" name="_csrf" value="{{ csrf_token() }}">
+    <label>{{ 'Reply' if not g.user.is_admin else 'Comment' }} <textarea name="body" rows="3" maxlength="3000"></textarea></label>
+    {% if g.user.is_admin %}
+    <label>Status <select name="status">{% for k, label in statuses %}<option value="{{ k }}" {{ 'selected' if r['status'] == k }}>{{ label }}</option>{% endfor %}</select></label>
+    {% elif r['status'] in ('resolved', 'closed') %}<p class="muted small">Replying will reopen this request.</p>{% endif %}
+    <button class="btn" type="submit">Save</button>
+  </form>
+  <p><a href="{{ url_for('requests_list') }}">All requests</a></p>
+</section>
+{% endblock %}

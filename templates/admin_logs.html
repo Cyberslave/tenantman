@@ -1,0 +1,43 @@
+{% extends "base.html" %}
+{% block title %}Activity · {{ brand.name }}{% endblock %}
+{% block content %}
+<section class="panel">
+  <div class="bar">
+    <h1>Activity</h1>
+    {% if view == 'sessions' %}<a class="btn ghost" href="{{ url_for('admin_logs_csv', tenant=tenant) }}">Download CSV</a>{% endif %}
+  </div>
+  <div class="tabs">
+    <a class="{{ 'on' if view == 'sessions' }}" href="{{ url_for('admin_logs', view='sessions', tenant=tenant) }}">Sign-ins</a>
+    <a class="{{ 'on' if view == 'audit' }}" href="{{ url_for('admin_logs', view='audit', tenant=tenant) }}">Admin and security events</a>
+  </div>
+  <form method="get" class="row filter">
+    <input type="hidden" name="view" value="{{ view }}">
+    <label>Tenant ID <input name="tenant" class="mono" value="{{ tenant }}" placeholder="All tenants"></label>
+    <button class="btn ghost" type="submit">Filter</button>
+  </form>
+  <div class="scroll">
+  {% if view == 'audit' %}
+  <table>
+    <thead><tr><th>When</th><th>Who</th><th>Event</th><th>Affected</th><th>Details</th><th>IP address</th></tr></thead>
+    <tbody>
+    {% for r in rows %}
+      <tr><td>{{ r['at']|local }}</td><td class="mono">{{ r['actor'] }}</td><td>{{ r['action'].replace('_', ' ') }}</td>
+          <td class="mono">{{ r['target'] or '' }}</td><td>{{ r['detail'] or '' }}</td><td>{{ r['ip'] }}</td></tr>
+    {% else %}<tr><td colspan="6" class="muted">No events recorded.</td></tr>{% endfor %}
+    </tbody>
+  </table>
+  {% else %}
+  <table>
+    <thead><tr><th>Tenant</th><th>Signed in</th><th>Signed out</th><th>Length</th><th>Outcome</th><th>IP address</th></tr></thead>
+    <tbody>
+    {% for r in rows %}
+      <tr><td><span class="mono">{{ r['account_id'] }}</span><br><span class="muted small">{{ r['full_name'] or 'Removed tenant' }}</span></td>
+          <td>{{ r['login_at']|local }}</td><td>{{ r['logout_at']|local }}</td><td>{{ r|duration }}</td><td>{{ r|status }}</td><td>{{ r['ip'] }}</td></tr>
+    {% else %}<tr><td colspan="6" class="muted">No sign-ins recorded.</td></tr>{% endfor %}
+    </tbody>
+  </table>
+  {% endif %}
+  </div>
+  <p class="muted small">Times are shown in {{ tz_label }}. Showing the latest 500 entries.</p>
+</section>
+{% endblock %}

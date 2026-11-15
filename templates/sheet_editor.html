@@ -1,0 +1,28 @@
+{% extends "base.html" %}
+{% block title %}{{ doc['title'] }} · {{ brand.name }}{% endblock %}
+{% block page %}sheet{% endblock %}
+{% block content %}
+<section class="panel docbar">
+  <div class="bar">
+    <input id="title" class="titlefield" value="{{ doc['title'] }}" maxlength="120" aria-label="Spreadsheet title" {{ 'readonly' if readonly }}>
+    <div class="row nowrap">
+      <span id="status" class="small muted" role="status">{{ 'View only' if readonly else 'Saved' }}</span>
+      {% if not readonly %}<button class="btn" id="save" type="button">Save</button>{% endif %}
+      {% if not readonly %}<button class="btn ghost" id="add-rows" type="button">Add 25 rows</button>{% endif %}
+      <a class="btn ghost" id="export" href="{{ url_for('workspace_export_xlsx', doc_id=doc['id']) }}">Download Excel</a>
+      <button class="btn ghost" id="csv" type="button">Download CSV</button>
+      {% if access == 'owner' %}<a class="btn ghost" href="{{ url_for('workspace_share', doc_id=doc['id']) }}">Share</a>{% endif %}
+      <a class="btn ghost" href="{{ url_for('workspace') }}">Close</a>
+    </div>
+  </div>
+  {% if access != 'owner' %}<p class="muted small">Owned by {{ owner['full_name'] if owner else 'a former tenant' }} · you have {{ 'edit' if access == 'edit' else 'view-only' }} access.</p>{% endif %}
+  <p class="muted small">Selected cell: <strong id="cell-label">–</strong> · Start a cell with = to calculate, for example =SUM(A1:A10), =B2*C2 or =IF(A1&gt;100,"High","Low"). Functions: SUM, AVERAGE, MIN, MAX, COUNT, IF, ROUND, ABS, SQRT, CONCAT.</p>
+</section>
+<div id="grid" class="gridwrap" data-id="{{ doc['id'] }}" data-version="{{ doc['version'] }}" data-edit="{{ 0 if readonly else 1 }}"></div>
+<script type="application/json" id="sheet-data">{{ content|tojson }}</script>
+{% endblock %}
+{% block scripts %}
+<script src="{{ url_for('static', filename='formula.js') }}" defer></script>
+<script src="{{ url_for('static', filename='workspace.js') }}" defer></script>
+<script src="{{ url_for('static', filename='sheet.js') }}" defer></script>
+{% endblock %}

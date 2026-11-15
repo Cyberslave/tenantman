@@ -1,0 +1,60 @@
+{% extends "base.html" %}
+{% block title %}Overview · {{ brand.name }}{% endblock %}
+{% block content %}
+<section class="stats stats4">
+  <div><strong>{{ stats.occupied }} of {{ stats.units }}</strong><span>Spaces let</span></div>
+  <div><strong>{{ stats.rent_roll|money }}</strong><span>Monthly rent roll</span></div>
+  <div><strong>{{ stats.collected|money }}</strong><span>Collected this month</span></div>
+  <div class="{{ 'alert' if stats.overdue }}"><strong>{{ stats.overdue|money }}</strong><span>Overdue now</span></div>
+</section>
+<div class="two">
+  <section class="panel">
+    <h2>The premises</h2>
+    {% include "_plan.html" %}
+    <p class="legend small"><span class="key occupied"></span>Let <span class="key overdue"></span>Rent overdue <span class="key reserved"></span>Reserved <span class="key vacant"></span>Vacant · click a space to open it</p>
+  </section>
+  <section class="panel">
+    <h2>Spaces</h2>
+    <table>
+      <thead><tr><th>Space</th><th>Tenant</th><th>Rent</th></tr></thead>
+      <tbody>
+      {% for code, u, s in spaces %}
+        <tr>
+          <td>{{ u['name'] }}</td>
+          <td>{% if s.tenant %}<a href="{{ url_for('admin_tenant', tid=s.tenant) }}">{{ s.lease['business_name'] or s.lease['full_name'] }}</a>{% if s.state == 'reserved' %} <span class="muted small">from {{ s.lease['start_date']|fdate }}</span>{% endif %}{% else %}<a href="{{ url_for('admin_new', unit=code) }}">Vacant · add a tenant</a>{% endif %}</td>
+          <td class="num">{{ (s.lease['rent_cents'] if s.lease else u['rent_cents'])|money }}</td>
+        </tr>
+      {% endfor %}
+      </tbody>
+    </table>
+    <p class="small"><a href="{{ url_for('admin_premises') }}">Measurements, rents and payment details</a></p>
+  </section>
+</div>
+<div class="two">
+  <section class="panel">
+    <div class="bar"><h2>Tenants behind on rent</h2><a class="btn ghost small" href="{{ url_for('admin_ledger') }}">Full arrears report</a></div>
+    <table>
+      <tbody>
+      {% for t, led in overdue %}
+        <tr><td><a href="{{ url_for('admin_tenant', tid=t['id']) }}">{{ t['business_name'] or t['full_name'] }}</a></td><td class="num err">{{ led.overdue|money }}</td></tr>
+      {% else %}
+        <tr><td class="muted">Nobody is overdue.</td></tr>
+      {% endfor %}
+      </tbody>
+    </table>
+    <p class="small">Total owed, including rent not yet due: <strong>{{ stats.owing|money }}</strong></p>
+  </section>
+  <section class="panel">
+    <h2>Leases ending</h2>
+    <ul class="plain">
+    {% for e in ending %}
+      <li><a href="{{ url_for('admin_tenant', tid=e.lease['tenant_id']) }}">{{ e.lease['business_name'] or e.lease['full_name'] }}</a> · {{ unit_name(e.lease['unit_code']) }}
+        <span class="{{ 'err' if e.days < 0 }} small">· {% if e.days < 0 %}expired {{ -e.days }} day{{ '' if e.days == -1 else 's' }} ago (rent continues month to month){% else %}in {{ e.days }} day{{ '' if e.days == 1 else 's' }}{% endif %}</span></li>
+    {% else %}
+      <li class="muted">No leases end in the next 60 days.</li>
+    {% endfor %}
+    </ul>
+    <p class="small"><a href="{{ url_for('requests_list', status='active') }}">{{ stats.open_requests }} open maintenance request{{ '' if stats.open_requests == 1 else 's' }}</a></p>
+  </section>
+</div>
+{% endblock %}

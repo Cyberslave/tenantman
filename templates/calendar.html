@@ -1,0 +1,45 @@
+{% extends "base.html" %}
+{% block title %}Calendar · {{ brand.name }}{% endblock %}
+{% block content %}
+<section class="panel">
+  <div class="bar">
+    <h1>{{ month.strftime('%B %Y') }}</h1>
+    <div class="row nowrap">
+      <a class="btn ghost" href="{{ url_for('calendar_view', month=prev_m) }}" aria-label="Previous month">&larr; Prev</a>
+      <a class="btn ghost" href="{{ url_for('calendar_view') }}">Today</a>
+      <a class="btn ghost" href="{{ url_for('calendar_view', month=next_m) }}" aria-label="Next month">Next &rarr;</a>
+      {% if g.user.is_admin %}<a class="btn" href="{{ url_for('event_form') }}">New event</a>{% endif %}
+    </div>
+  </div>
+  <div class="scroll">
+  <table class="cal">
+    <thead><tr>{% for d in ['Mon','Tue','Wed','Thu','Fri','Sat','Sun'] %}<th>{{ d }}</th>{% endfor %}</tr></thead>
+    <tbody>
+    {% for week in weeks %}
+      <tr>
+      {% for day in week %}
+        <td class="{{ 'other' if day.month != month.month }} {{ 'today' if day == today }}">
+          {% if g.user.is_admin %}<a class="daynum" href="{{ url_for('event_form', date=day.isoformat()) }}" title="Add an event on this day">{{ day.day }}</a>{% else %}<span class="daynum">{{ day.day }}</span>{% endif %}
+          {% for e in by_day.get(day, []) %}
+            <a class="chip {{ 'company' if e.company }}" href="{{ url_for('event_detail', event_id=e.id) }}">{% if e.time %}<span>{{ e.time }}</span> {% endif %}{{ e.title }}</a>
+          {% endfor %}
+        </td>
+      {% endfor %}
+      </tr>
+    {% endfor %}
+    </tbody>
+  </table>
+  </div>
+  <p class="muted small">Times are shown in {{ tz_label }}. Company-wide events appear in teal.</p>
+</section>
+<section class="panel">
+  <h2>Coming up (next 14 days)</h2>
+  <ul class="plain">
+  {% for u in upcoming %}
+    <li><a href="{{ url_for('event_detail', event_id=u.ev['id']) }}">{{ u.ev['title'] }}</a> <span class="muted small">· {{ u.when }}{% if u.ev['location'] %} · {{ u.ev['location'] }}{% endif %}</span></li>
+  {% else %}
+    <li class="muted">Nothing scheduled.</li>
+  {% endfor %}
+  </ul>
+</section>
+{% endblock %}

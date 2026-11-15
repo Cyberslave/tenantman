@@ -1,0 +1,28 @@
+{% extends "base.html" %}
+{% block title %}{{ doc['title'] }} · {{ brand.name }}{% endblock %}
+{% block page %}editor{% endblock %}
+{% block content %}
+<section class="panel docbar">
+  <div class="bar">
+    <input id="title" class="titlefield" value="{{ doc['title'] }}" maxlength="120" aria-label="Document title" {{ 'readonly' if readonly }}>
+    <div class="row nowrap">
+      <span id="status" class="small muted" role="status">{{ 'View only' if readonly else 'Saved' }}</span>
+      {% if not readonly %}<button class="btn" id="save" type="button">Save</button>{% endif %}
+      <button class="btn ghost" id="print" type="button">Print / PDF</button>
+      <a class="btn ghost" id="export" href="{{ url_for('workspace_export_docx', doc_id=doc['id']) }}">Download Word</a>
+      {% if access == 'owner' %}<a class="btn ghost" href="{{ url_for('workspace_share', doc_id=doc['id']) }}">Share</a>{% endif %}
+      <a class="btn ghost" href="{{ url_for('workspace') }}">Close</a>
+    </div>
+  </div>
+  {% if access != 'owner' %}<p class="muted small">Owned by {{ owner['full_name'] if owner else 'a former tenant' }} · you have {{ 'edit' if access == 'edit' else 'view-only' }} access.</p>{% endif %}
+</section>
+{% if not readonly %}
+{% include "_toolbar.html" %}
+{% endif %}
+<div class="print-brand">{% if brand.has_logo %}<img src="{{ brand.logo_url }}" alt="">{% endif %}<span>{{ brand.name }}</span></div>
+<article id="editor" class="paper" data-id="{{ doc['id'] }}" data-version="{{ doc['version'] }}" data-edit="{{ 0 if readonly else 1 }}" {% if not readonly %}contenteditable="true" spellcheck="true"{% endif %}>{{ content|safe }}</article>
+{% endblock %}
+{% block scripts %}
+<script src="{{ url_for('static', filename='workspace.js') }}" defer></script>
+<script src="{{ url_for('static', filename='editor.js') }}" defer></script>
+{% endblock %}

@@ -1,0 +1,31 @@
+{% extends "base.html" %}
+{% block title %}{{ page['title'] }} · {{ brand.name }}{% endblock %}
+{% block page %}editor{% endblock %}
+{% block content %}
+<section class="panel docbar">
+  <div class="bar">
+    <input id="title" class="titlefield" value="{{ page['title'] }}" maxlength="100" aria-label="Page title">
+    <div class="row nowrap">
+      <span id="status" class="small muted" role="status">Saved</span>
+      <button class="btn" id="save" type="button">Save</button>
+      <a class="btn ghost" href="{{ url_for('site_page', slug=page['slug']) }}">View page</a>
+      <a class="btn ghost" href="{{ url_for('admin_website') }}">Close</a>
+    </div>
+  </div>
+  <form method="post" action="{{ url_for('page_settings', pid=page['id']) }}" class="row">
+    <input type="hidden" name="_csrf" value="{{ csrf_token() }}">
+    <label>Web address (/p/…) <input name="slug" value="{{ page['slug'] }}" maxlength="40" required></label>
+    <label>Order <input type="number" name="position" value="{{ page['position'] }}" min="0" max="9999"></label>
+    <label class="check"><input type="checkbox" name="published" value="1" {{ 'checked' if page['published'] }}> Published</label>
+    <label class="check"><input type="checkbox" name="in_menu" value="1" {{ 'checked' if page['in_menu'] }}> Show in the menu and footer</label>
+    <button class="btn ghost" type="submit">Save settings</button>
+  </form>
+  <p class="muted small">Save the page text first; saving the settings reloads this screen. Only published pages are visible to visitors.</p>
+</section>
+{% include "_toolbar.html" %}
+<article id="editor" class="paper" data-id="{{ page['id'] }}" data-version="{{ page['version'] }}" data-edit="1" data-save-url="{{ url_for('api_page_save', pid=page['id']) }}" contenteditable="true" spellcheck="true">{{ content|safe }}</article>
+{% endblock %}
+{% block scripts %}
+<script src="{{ url_for('static', filename='workspace.js') }}" defer></script>
+<script src="{{ url_for('static', filename='editor.js') }}" defer></script>
+{% endblock %}

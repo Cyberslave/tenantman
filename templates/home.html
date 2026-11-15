@@ -1,0 +1,8 @@
+{% extends "base.html" %}
+{% block title %}{{ brand.name }}{% endblock %}
+{% block page %}home{% endblock %}
+{% block content %}
+{% for s in sections %}{% set sec = s.ctx %}{% include s.template %}
+{% endfor %}
+{% endblock %}
+{% block scripts %}<script src="{{ url_for('static', filename='gallery.js') }}" defer></script>{% endblock %}

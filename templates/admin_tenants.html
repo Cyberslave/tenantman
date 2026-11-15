@@ -1,0 +1,33 @@
+{% extends "base.html" %}
+{% block title %}Tenants · {{ brand.name }}{% endblock %}
+{% block content %}
+<section class="panel">
+  <div class="bar"><h1>Tenants</h1><a class="btn" href="{{ url_for('admin_new') }}">Add tenant</a></div>
+  <form method="get" class="row filter">
+    <label>Search <input name="q" value="{{ q }}" placeholder="Business, name, ID, phone or email"></label>
+    <label>Space
+      <select name="unit"><option value="">All spaces</option>{% for code in LEVELS %}<option value="{{ code }}" {{ 'selected' if unit == code }}>{{ unit_name(code) }}</option>{% endfor %}</select>
+    </label>
+    <button class="btn ghost" type="submit">Filter</button>
+  </form>
+  <div class="scroll">
+  <table>
+    <thead><tr><th>Tenant ID</th><th>Tenant</th><th>Space</th><th class="num">Balance</th><th class="num">Overdue</th><th>Last sign-in</th></tr></thead>
+    <tbody>
+    {% for r in rows %}
+      <tr>
+        <td><span class="idtag lv-{{ r.t['level'] }}">{{ r.t['id'] }}</span></td>
+        <td><a href="{{ url_for('admin_tenant', tid=r.t['id']) }}">{{ r.t['business_name'] or r.t['full_name'] }}</a>{% if r.t['business_name'] %}<br><span class="muted small">{{ r.t['full_name'] }}</span>{% endif %}</td>
+        <td>{% for l in r.leases %}{{ unit_name(l['unit_code']) }}{{ ', ' if not loop.last }}{% else %}<span class="muted">No current lease</span>{% endfor %}</td>
+        <td class="num">{{ r.led.balance|money }}</td>
+        <td class="num {{ 'err' if r.led.overdue }}">{{ r.led.overdue|money if r.led.overdue else '—' }}</td>
+        <td>{{ r.last_login|local }}</td>
+      </tr>
+    {% else %}
+      <tr><td colspan="6" class="muted">{% if q or unit %}No tenants match.{% else %}No tenants yet. Add the first one to create their ID, folder and lease.{% endif %}</td></tr>
+    {% endfor %}
+    </tbody>
+  </table>
+  </div>
+</section>
+{% endblock %}

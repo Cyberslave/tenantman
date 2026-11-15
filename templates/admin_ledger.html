@@ -1,0 +1,35 @@
+{% extends "base.html" %}
+{% block title %}Ledger · {{ brand.name }}{% endblock %}
+{% block content %}
+<section class="panel">
+  <div class="bar"><h1>Rent ledger</h1><a class="btn ghost" href="{{ url_for('admin_ledger_xlsx') }}">Download Excel</a></div>
+  <p class="muted">Who owes what as at {{ today|string|fdate }}. Overdue means the due date has passed. Open a tenant to record a payment.</p>
+  <div class="stats stats4 inner">
+    <div><strong>{{ totals.owing|money }}</strong><span>Total owed (incl. not yet due)</span></div>
+    <div class="{{ 'alert' if totals.overdue }}"><strong>{{ totals.overdue|money }}</strong><span>Overdue</span></div>
+    <div><strong>{{ totals['31-60']|money }}</strong><span>31–60 days late</span></div>
+    <div><strong>{{ totals['61+']|money }}</strong><span>Over 60 days late</span></div>
+  </div>
+  <div class="scroll">
+  <table>
+    <thead><tr><th>Tenant</th><th>Space</th><th class="num">Balance</th><th class="num">Overdue</th><th class="num">1–30</th><th class="num">31–60</th><th class="num">61+</th><th>Last payment</th></tr></thead>
+    <tbody>
+    {% for r in rows %}
+      <tr>
+        <td><a href="{{ url_for('admin_tenant', tid=r.t['id']) }}">{{ r.t['business_name'] or r.t['full_name'] }}</a></td>
+        <td>{{ r.spaces }}</td>
+        <td class="num">{{ r.led.balance|money }}</td>
+        <td class="num {{ 'err' if r.led.overdue }}">{{ r.led.overdue|money if r.led.overdue else '—' }}</td>
+        <td class="num">{{ r.led.buckets['1-30']|money if r.led.buckets['1-30'] else '—' }}</td>
+        <td class="num">{{ r.led.buckets['31-60']|money if r.led.buckets['31-60'] else '—' }}</td>
+        <td class="num">{{ r.led.buckets['61+']|money if r.led.buckets['61+'] else '—' }}</td>
+        <td>{{ r.last_payment|fdate if r.last_payment else '—' }}</td>
+      </tr>
+    {% else %}
+      <tr><td colspan="8" class="muted">No tenants yet.</td></tr>
+    {% endfor %}
+    </tbody>
+  </table>
+  </div>
+</section>
+{% endblock %}

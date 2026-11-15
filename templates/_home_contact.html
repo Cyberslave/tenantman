@@ -1,0 +1,35 @@
+{% set d = sec.details %}{% set v = sec.fields %}
+<section class="panel contact" id="contact">
+  <h2>Get in touch</h2>
+  {% if sec.result == 'ok' %}<p class="flash ok" role="status">Thank you. Your message has been sent and we will reply as soon as we can.</p>{% endif %}
+  {% if sec.errors %}<div class="flash error" role="alert"><strong>Your message was not sent:</strong><ul>{% for e in sec.errors %}<li>{{ e }}</li>{% endfor %}</ul></div>{% endif %}
+  <div class="two inner">
+    <div class="contact-details">
+      <p>Interested in renting a space, or have a question? Send us a message and we will reply.</p>
+      {% if d.address %}<p><strong>Address</strong><br>{{ d.address }}</p>{% endif %}
+      {% if d.phone %}<p><strong>Phone</strong><br>{% if d.tel %}<a href="tel:{{ d.tel }}">{{ d.phone }}</a>{% else %}{{ d.phone }}{% endif %}</p>{% endif %}
+      {% if d.email %}<p><strong>Email</strong><br><a href="mailto:{{ d.email }}">{{ d.email }}</a></p>{% endif %}
+      {% if d.hours %}<p><strong>Opening hours</strong><br>{{ d.hours }}</p>{% endif %}
+      <p class="muted small">Current tenants: please sign in to report a maintenance problem or message the landlord.</p>
+    </div>
+    <form method="post" action="{{ url_for('contact_submit') }}#contact" class="stack">
+      <input type="hidden" name="_csrf" value="{{ csrf_token() }}">
+      <input type="hidden" name="ts" value="{{ sec.token }}">
+      <div class="hp" aria-hidden="true"><label>Leave this field empty <input name="website" tabindex="-1" autocomplete="off"></label></div>
+      <label>Your name <input name="name" value="{{ v.get('name', '') }}" maxlength="80" autocomplete="name" required></label>
+      <div class="grid">
+        <label>Email <input type="email" name="email" value="{{ v.get('email', '') }}" maxlength="120" autocomplete="email"></label>
+        <label>Phone <input type="tel" name="phone" value="{{ v.get('phone', '') }}" maxlength="30" autocomplete="tel"></label>
+      </div>
+      <p class="muted small">Please give at least one way to reach you.</p>
+      <label>What is this about?
+        <select name="topic" required>{% for key, label in sec.topics %}<option value="{{ key }}" {{ 'selected' if v.get('topic') == key }}>{{ label }}</option>{% endfor %}</select>
+      </label>
+      <label>Which space interests you? (optional)
+        <select name="unit"><option value="">Not sure yet</option>{% for code, name in sec.units %}<option value="{{ code }}" {{ 'selected' if v.get('unit') == code }}>{{ name }}</option>{% endfor %}</select>
+      </label>
+      <label>Your message <textarea name="message" rows="5" minlength="10" maxlength="2000" required>{{ v.get('message', '') }}</textarea></label>
+      <button class="btn" type="submit">Send message</button>
+    </form>
+  </div>
+</section>

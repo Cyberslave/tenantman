@@ -1,0 +1,45 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="csrf" content="{{ csrf_token() }}">
+<title>{% block title %}{{ brand.name }}{% endblock %}</title>
+<link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+<link rel="stylesheet" href="{{ url_for('branding_theme') }}">
+{% if brand.has_logo %}<link rel="icon" href="{{ brand.logo_url }}">{% endif %}
+</head>
+<body{% if g.user %} data-signed-in="1" data-last-notif="{{ nav.last_notif }}" data-msgs="{{ nav.messages }}"{% endif %} data-page="{% block page %}{% endblock %}">
+<header class="top">
+  <a class="brand" href="{{ url_for('home') }}">{% if brand.has_logo %}<img src="{{ brand.logo_url }}" alt="">{% endif %}<span>{{ brand.name }}</span></a>
+  {% if g.user %}
+  <nav aria-label="Main">
+    {% for it in nav_items %}<a href="{{ it.url }}">{{ it.label }}{% if it.badge %} <span class="badge" id="{{ it.badge.id }}" {% if not it.badge.count %}hidden{% endif %}>{{ it.badge.count }}</span>{% endif %}</a>
+    {% endfor %}
+  </nav>
+  <form method="post" action="{{ url_for('logout') }}" class="who">
+    <input type="hidden" name="_csrf" value="{{ csrf_token() }}">
+    <span class="idtag lv-{{ g.user.level }}">{{ g.user.id }}</span>
+    <button class="btn ghost" type="submit">Sign out</button>
+  </form>
+  {% else %}
+  <nav aria-label="Main" class="publicnav">
+    {% for it in public_nav %}<a href="{{ it.url }}">{{ it.label }}</a>
+    {% endfor %}
+  </nav>
+  {% endif %}
+</header>
+<main>
+  {% with msgs = get_flashed_messages(with_categories=true) %}
+    {% for cat, msg in msgs %}<p class="flash {{ cat }}" role="status">{{ msg }}</p>{% endfor %}
+  {% endwith %}
+  {% block content %}{% endblock %}
+</main>
+<footer class="sitefoot">
+  <span>© {{ year }} {{ brand.name }}</span>
+  <nav aria-label="Site">{% for l in footer_links %}<a href="{{ l.url }}">{{ l.label }}</a>{% endfor %}</nav>
+</footer>
+<script src="{{ url_for('static', filename='app.js') }}" defer></script>
+{% block scripts %}{% endblock %}
+</body>
+</html>

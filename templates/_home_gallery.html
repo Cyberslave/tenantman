@@ -1,0 +1,14 @@
+{% if sec.photos %}
+<section class="gallery" aria-label="Photos of the property" data-gallery>
+  {% for p in sec.photos %}
+  <a class="shot {{ 'feature' if loop.first }}" href="{{ url_for('photo_file', pid=p['id']) }}" data-caption="{{ p['caption'] or '' }}">
+    <img src="{{ url_for('photo_file', pid=p['id'], t=(1 if (p['has_thumb'] and not loop.first) else None)) }}" alt="{{ p['caption'] or 'Photo of the property' }}" loading="{{ 'eager' if loop.first else 'lazy' }}">
+    {% if p['caption'] %}<span class="cap">{{ p['caption'] }}</span>{% endif %}
+  </a>
+  {% endfor %}
+</section>
+{% elif g.user and g.user.is_admin %}
+<section class="panel narrow wide"><p>No photos yet. <a href="{{ url_for('admin_photos') }}">Add photos of the property</a> and they will appear here.</p></section>
+{% elif sec.photos_hidden %}
+<p class="muted center">Sign in to see photos of the property.</p>
+{% endif %}

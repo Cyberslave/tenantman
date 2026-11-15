@@ -1,0 +1,31 @@
+<table>
+  <thead><tr><th>Document</th><th>Category</th><th>Size</th><th>Added</th>{% if admin %}<th></th>{% endif %}</tr></thead>
+  <tbody>
+  {% for d in docs %}
+    <tr>
+      <td><a href="{{ url_for('download', doc_id=d['id']) }}">{{ d['original_name'] }}</a></td>
+      <td>{{ d['category'] }}</td>
+      <td>{{ d['size']|filesize }}</td>
+      <td>{{ d['uploaded_at']|local }}</td>
+      {% if admin %}
+      <td>
+        <form method="post" action="{{ url_for('delete_document', doc_id=d['id']) }}">
+          <input type="hidden" name="_csrf" value="{{ csrf_token() }}">
+          <button class="btn danger small" type="submit">Delete</button>
+        </form>
+      </td>
+      {% endif %}
+    </tr>
+  {% else %}
+    <tr><td colspan="5" class="muted">No documents yet. Upload the first one below.</td></tr>
+  {% endfor %}
+  </tbody>
+</table>
+<form method="post" action="{{ upload_url }}" enctype="multipart/form-data" class="row upload">
+  <input type="hidden" name="_csrf" value="{{ csrf_token() }}">
+  <label>Category
+    <select name="category">{% for c in CATEGORIES %}<option>{{ c }}</option>{% endfor %}</select>
+  </label>
+  <label>File <input type="file" name="file" required></label>
+  <button class="btn" type="submit">Upload document</button>
+</form>

@@ -1,0 +1,13 @@
+<section class="hero">
+  {% if brand.has_logo %}<img class="hero-logo" src="{{ brand.logo_url }}" alt="{{ brand.name }} logo">{% endif %}
+  <h1>{{ brand.name }}</h1>
+  {% if sec.tagline %}<p class="tagline">{{ sec.tagline }}</p>{% endif %}
+  <p class="hero-actions">
+    {% if g.user %}
+      <a class="btn" href="{{ url_for('dashboard') }}">{{ 'Go to the overview' if g.user.is_admin else 'Go to my account' }}</a>
+      {% if g.user.is_admin %}<a class="btn ghost" href="{{ url_for('admin_website') }}">Edit the website</a>{% endif %}
+    {% else %}
+      <a class="btn" href="{{ url_for('login') }}">Tenant sign-in</a>
+    {% endif %}
+  </p>
+</section>

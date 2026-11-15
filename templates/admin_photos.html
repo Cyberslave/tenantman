@@ -1,0 +1,53 @@
+{% extends "base.html" %}
+{% block title %}Home page and photos · {{ brand.name }}{% endblock %}
+{% block content %}
+<section class="panel">
+  <div class="bar"><h1>Home page and photos</h1><a class="btn ghost" href="{{ url_for('home') }}">See the home page</a></div>
+  <p class="muted">The home page shows the property name and logo (change them under <a href="{{ url_for('admin_branding') }}">Branding</a>), a welcome message and these photos. Only you can add or change photos. The first photo is shown large.</p>
+  <form method="post" action="{{ url_for('photos_settings') }}" class="stack">
+    <input type="hidden" name="_csrf" value="{{ csrf_token() }}">
+    <label>Welcome message (optional) <textarea name="tagline" rows="2" maxlength="300" placeholder="e.g. Shops and storage to rent. Safe, central, with a private yard.">{{ cfg.tagline }}</textarea></label>
+    <label class="check"><input type="checkbox" name="public" value="1" {{ 'checked' if cfg.public }}> Show the photos to visitors who have not signed in</label>
+    <p class="muted small">If this is off, only signed-in tenants and you see the photos. The name, logo and welcome message are always public.</p>
+    <p><button class="btn" type="submit">Save</button></p>
+  </form>
+</section>
+<section class="panel">
+  <h2>Add photos</h2>
+  <form method="post" action="{{ url_for('photos_upload') }}" enctype="multipart/form-data" class="stack">
+    <input type="hidden" name="_csrf" value="{{ csrf_token() }}">
+    <label>Photos <input type="file" name="photos" accept="image/jpeg,image/png,image/webp" multiple required></label>
+    <label>Caption (used when you add one photo; you can edit captions below) <input name="caption" maxlength="200"></label>
+    <p class="muted small">JPG, PNG or WebP, up to 10 MB each and {{ per_upload }} at a time ({{ photos|length }} of {{ max_photos }} used).
+      {% if have_pil %}Photos are rotated upright, resized for the web and stripped of hidden camera data such as GPS location.{% else %}Install Pillow (pip install -r requirements.txt) to resize photos and remove hidden camera data such as GPS location.{% endif %}</p>
+    <p><button class="btn" type="submit">Add photos</button></p>
+  </form>
+</section>
+<section class="panel">
+  <h2>Photos on the home page</h2>
+  <ul class="photolist">
+  {% for p in photos %}
+    <li>
+      <img src="{{ url_for('photo_file', pid=p['id'], t=(1 if p['has_thumb'] else None)) }}" alt="{{ p['caption'] or 'Photo ' ~ loop.index }}">
+      <div class="photo-edit">
+        <form method="post" action="{{ url_for('photo_caption', pid=p['id']) }}" class="row">
+          <input type="hidden" name="_csrf" value="{{ csrf_token() }}">
+          <label>Caption <input name="caption" maxlength="200" value="{{ p['caption'] or '' }}"></label>
+          <button class="btn ghost small" type="submit">Save caption</button>
+        </form>
+        <div class="row nowrap">
+          <span class="muted small">{{ 'Large photo (first)' if loop.first else 'Photo ' ~ loop.index }}</span>
+          <form method="post" action="{{ url_for('photo_move', pid=p['id']) }}"><input type="hidden" name="_csrf" value="{{ csrf_token() }}"><input type="hidden" name="direction" value="up"><button class="btn ghost small" type="submit" {{ 'disabled' if loop.first }}>Move earlier</button></form>
+          <form method="post" action="{{ url_for('photo_move', pid=p['id']) }}"><input type="hidden" name="_csrf" value="{{ csrf_token() }}"><input type="hidden" name="direction" value="down"><button class="btn ghost small" type="submit" {{ 'disabled' if loop.last }}>Move later</button></form>
+          <details class="confirm"><summary class="btn danger small">Delete</summary>
+            <form method="post" action="{{ url_for('photo_delete', pid=p['id']) }}"><input type="hidden" name="_csrf" value="{{ csrf_token() }}"><p class="small">Delete this photo for good?</p><button class="btn danger small" type="submit">Yes, delete</button></form>
+          </details>
+        </div>
+      </div>
+    </li>
+  {% else %}
+    <li class="muted">No photos yet.</li>
+  {% endfor %}
+  </ul>
+</section>
+{% endblock %}

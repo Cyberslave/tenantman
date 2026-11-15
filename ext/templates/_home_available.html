@@ -1,0 +1,14 @@
+<section class="panel" id="available">
+  <h2>Available spaces</h2>
+  <div class="scroll">
+  <table>
+    <thead><tr><th>Space</th><th>Size</th><th class="num">Rent per month</th><th>Notes</th></tr></thead>
+    <tbody>
+    {% for s in sec.spaces %}
+      <tr><td>{{ s.name }}</td><td>{{ s.area }}</td><td class="num">{{ s.rent }}</td><td class="muted small">{{ s.notes }}</td></tr>
+    {% endfor %}
+    </tbody>
+  </table>
+  </div>
+  <p class="small"><a href="#contact">Ask about a space</a></p>
+</section>

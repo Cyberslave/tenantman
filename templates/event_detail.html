@@ -1,0 +1,38 @@
+{% extends "base.html" %}
+{% block title %}{{ ev['title'] }} · {{ brand.name }}{% endblock %}
+{% block content %}
+<section class="panel narrow wide">
+  <h1>{{ ev['title'] }}</h1>
+  <p class="muted">{{ when }}{% if ev['location'] %} · {{ ev['location'] }}{% endif %}</p>
+  <p class="small muted">Organised by {{ ev['owner_name'] or 'a former tenant' }}{% if ev['audience'] == 'all' %} · Company-wide event{% endif %}</p>
+  {% if ev['description'] %}<p class="prewrap">{{ ev['description'] }}</p>{% endif %}
+  {% if ev['reminder_min'] is not none %}<p class="small muted">Reminder: {{ 'at the start' if ev['reminder_min'] == 0 else (ev['reminder_min'] ~ ' minutes before' if ev['reminder_min'] < 60 else ('1 hour before' if ev['reminder_min'] == 60 else '1 day before')) }}</p>{% endif %}
+  {% if attendees %}
+  <h2>Invited</h2>
+  <ul class="plain">
+    {% for a in attendees %}<li>{{ a['full_name'] }} <span class="muted small">· {{ a['status'] }}</span></li>{% endfor %}
+  </ul>
+  {% endif %}
+  {% if ev['my_status'] is not none %}
+  <form method="post" action="{{ url_for('event_rsvp', event_id=ev['id']) }}" class="row">
+    <input type="hidden" name="_csrf" value="{{ csrf_token() }}">
+    <p class="grow small">Your reply: <strong>{{ ev['my_status'] }}</strong></p>
+    <button class="btn" name="status" value="accepted" type="submit">Accept</button>
+    <button class="btn ghost" name="status" value="declined" type="submit">Decline</button>
+  </form>
+  {% endif %}
+  {% if is_owner %}
+  <div class="row top-gap">
+    <a class="btn" href="{{ url_for('event_form', event_id=ev['id']) }}">Edit</a>
+    <details class="confirm"><summary class="btn danger">Delete</summary>
+      <form method="post" action="{{ url_for('event_delete', event_id=ev['id']) }}">
+        <input type="hidden" name="_csrf" value="{{ csrf_token() }}">
+        <p class="small">Everyone invited will be told it was cancelled.</p>
+        <button class="btn danger" type="submit">Yes, delete event</button>
+      </form>
+    </details>
+  </div>
+  {% endif %}
+  <p><a href="{{ url_for('calendar_view') }}">Back to the calendar</a></p>
+</section>
+{% endblock %}

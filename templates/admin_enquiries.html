@@ -1,0 +1,29 @@
+{% extends "base.html" %}
+{% block title %}Enquiries · {{ brand.name }}{% endblock %}
+{% block content %}
+<section class="panel">
+  <div class="bar"><h1>Enquiries</h1><a class="btn ghost" href="{{ url_for('admin_website') }}">Website</a></div>
+  <form method="get" class="row filter">
+    <label>Show
+      <select name="status"><option value="">All</option>{% for s in ('new', 'read', 'replied', 'archived') %}<option value="{{ s }}" {{ 'selected' if status == s }}>{{ s|capitalize }}</option>{% endfor %}</select>
+    </label>
+    <button class="btn ghost" type="submit">Filter</button>
+  </form>
+  <div class="scroll"><table>
+    <thead><tr><th>When</th><th>From</th><th>About</th><th>Message</th><th>Status</th></tr></thead>
+    <tbody>
+    {% for e in rows %}
+      <tr class="{{ 'unread-row' if e['status'] == 'new' }}">
+        <td>{{ e['created_at']|local }}</td>
+        <td><a href="{{ url_for('admin_enquiry', eid=e['id']) }}">{{ e['name'] }}</a></td>
+        <td>{{ topics.get(e['topic'], e['topic']) }}</td>
+        <td>{{ e['message'][:90] }}{{ '…' if e['message']|length > 90 }}</td>
+        <td><span class="chip-s s-{{ 'open' if e['status'] == 'new' else 'closed' }}">{{ e['status']|capitalize }}</span></td>
+      </tr>
+    {% else %}
+      <tr><td colspan="5" class="muted">No enquiries{{ ' with that status' if status }}.</td></tr>
+    {% endfor %}
+    </tbody>
+  </table></div>
+</section>
+{% endblock %}

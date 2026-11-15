@@ -1,0 +1,63 @@
+{% extends "base.html" %}
+{% block title %}My account · {{ brand.name }}{% endblock %}
+{% block content %}
+<section class="panel">
+  <div class="filehead">
+    <span class="idtag lv-{{ g.user.level }}">{{ g.user.id }}</span>
+    <h1>{{ g.user.business_name or g.user.full_name }}</h1>
+  </div>
+  <p class="muted">{{ g.user.full_name }}{% if g.user.trade %} · {{ g.user.trade }}{% endif %}</p>
+  <div class="stats stats4 inner">
+    <div class="{{ 'alert' if led.overdue }}"><strong>{{ led.balance|money }}</strong><span>{{ 'In credit' if led.balance < 0 else 'Balance owing' }}</span></div>
+    <div class="{{ 'alert' if led.overdue }}"><strong>{{ led.overdue|money }}</strong><span>Overdue now</span></div>
+    <div><strong>{{ led.next_due['due_date']|fdate if led.next_due else '—' }}</strong><span>Next payment due</span></div>
+    <div class="actions2"><a class="btn small" href="{{ url_for('statement') }}">Full statement</a></div>
+  </div>
+  {% if prem.pay_info and led.owing %}<p class="small"><strong>How to pay:</strong> <span class="prewrap">{{ prem.pay_info }}</span></p>{% endif %}
+</section>
+<div class="two">
+  <section class="panel">
+    <h2>My space</h2>
+    {% include "_plan.html" %}
+    <ul class="plain">
+    {% for l, state in leases %}
+      <li><strong>{{ unit_name(l['unit_code']) }}</strong> · rent {{ l['rent_cents']|money }} due on day {{ l['due_day'] }}<br>
+        <span class="muted small">{{ l['start_date']|fdate }} to {{ l['end_date']|fdate if l['end_date'] else 'month to month' }}{% if state == 'future' %} · starts later{% endif %}</span></li>
+    {% else %}
+      <li class="muted">You have no current lease.</li>
+    {% endfor %}
+    </ul>
+  </section>
+  <section class="panel">
+    <h2>Recent activity</h2>
+    <table>
+      <tbody>
+      {% for l in lines %}
+        <tr><td>{{ l.date|fdate }}</td><td>{{ l.description }}</td><td class="num">{{ ('+' ~ (l.debit|money)) if l.debit else ('−' ~ (l.credit|money)) }}</td></tr>
+      {% else %}
+        <tr><td class="muted">Nothing yet.</td></tr>
+      {% endfor %}
+      </tbody>
+    </table>
+    <h2>Maintenance requests</h2>
+    <ul class="plain">
+    {% for r in reqs %}
+      <li><a href="{{ url_for('request_detail', rid=r['id']) }}">{{ r['title'] }}</a> <span class="chip-s s-{{ r['status'] }}">{{ r['status']|label }}</span></li>
+    {% else %}
+      <li class="muted">No requests.</li>
+    {% endfor %}
+    </ul>
+    <p><a class="btn ghost small" href="{{ url_for('request_new') }}">Report a problem</a> <a class="btn ghost small" href="{{ url_for('requests_list') }}">All requests</a></p>
+  </section>
+</div>
+<section class="panel">
+  <h2>My documents</h2>
+  <p class="muted small">Your lease, notices and anything you upload (such as proof of payment) are kept here.</p>
+  {% set admin = false %}{% set upload_url = url_for('me_upload') %}
+  {% include "_docs.html" %}
+</section>
+<section class="panel">
+  <h2>My recent sign-ins</h2>
+  {% include "_sessions.html" %}
+</section>
+{% endblock %}

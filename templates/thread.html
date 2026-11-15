@@ -1,0 +1,25 @@
+{% extends "base.html" %}
+{% block title %}{{ other['full_name'] }} · Messages{% endblock %}
+{% block page %}thread{% endblock %}
+{% block content %}
+<section class="panel" id="thread" data-ref="{{ other['ref'] }}" data-last-in="{{ last_in }}">
+  <div class="bar">
+    <div><h1>{{ other['full_name'] }}</h1><p class="muted small">{{ role_label(other) }}</p></div>
+    <a class="btn ghost" href="{{ url_for('messages') }}">All messages</a>
+  </div>
+  <div id="msglist" class="msglist" aria-live="polite">
+    {% for r in rows %}
+      <div class="msg {{ 'mine' if r['sender_id'] == me else 'theirs' }}"><p>{{ r['body'] }}</p><span class="small muted">{{ r['created_at']|local }}</span></div>
+    {% else %}
+      <p id="empty" class="muted">No messages yet. Say hello.</p>
+    {% endfor %}
+  </div>
+  <form method="post" id="msgform" class="composer">
+    <input type="hidden" name="_csrf" value="{{ csrf_token() }}">
+    <textarea name="body" rows="2" maxlength="4000" placeholder="Write a message (Ctrl+Enter to send)" aria-label="Message" required></textarea>
+    <button class="btn" type="submit">Send</button>
+  </form>
+  <p id="msgerr" class="small err" role="alert"></p>
+</section>
+{% endblock %}
+{% block scripts %}<script src="{{ url_for('static', filename='messages.js') }}" defer></script>{% endblock %}
