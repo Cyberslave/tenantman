@@ -40,6 +40,13 @@
   <nav aria-label="Site">{% for l in footer_links %}<a href="{{ l.url }}">{{ l.label }}</a>{% endfor %}</nav>
 </footer>
 <script src="{{ url_for('static', filename='app.js') }}" defer></script>
+  <script>
+  if ('serviceWorker' in navigator) {
+    window.addEventListener('load', function () {
+      navigator.serviceWorker.register('/service-worker.js').catch(function () {});
+    });
+  }
+</script>
 {% block scripts %}{% endblock %}
 </body>
 </html>
