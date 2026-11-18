@@ -605,3 +605,4 @@ import website  # noqa: E402,F401  (home page sections, public pages, contact fo
 import gallery  # noqa: E402,F401  (property photos: a home page section)
 import leases  # noqa: E402,F401  (printed lease agreements)
 website.load_extensions()  # anything in ext/ plugs in here
+import pwa
