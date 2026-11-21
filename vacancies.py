@@ -44,8 +44,8 @@ APPLICATIONS_DIR.mkdir(parents=True, exist_ok=True)
 VACANCY_LEVELS = ("MGT", "EXE", "ADM")
 ALLOWED_DOCS = {"pdf", "doc", "docx", "odt", "png", "jpg", "jpeg"}
 MAX_DOC_BYTES = 10 * 1024 * 1024
-EMAIL_RE = re.compile(r"^[^@\\s]+@[^@\\s]+\\.[^@\\s]+$")
-PHONE_RE = re.compile(r"^[\\d+()\\-. ]{5,30}$")
+EMAIL_RE = re.compile(r"^[^@\s]+@[^@\s]+\.[^@\s]+$")
+PHONE_RE = re.compile(r"^[\d+()\-. ]{5,30}$")
 DOC_KEYS = ("cv", "id", "licence", "qualifications")
 
 
