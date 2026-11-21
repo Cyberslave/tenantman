@@ -604,5 +604,6 @@ import premises  # noqa: E402,F401  (leases, rent ledger, plan, requests)
 import website  # noqa: E402,F401  (home page sections, public pages, contact form, menus, extensions)
 import gallery  # noqa: E402,F401  (property photos: a home page section)
 import leases  # noqa: E402,F401  (printed lease agreements)
+import vacancies  # noqa: E402,F401  (job vacancies and applications)
 website.load_extensions()  # anything in ext/ plugs in here
 import pwa
