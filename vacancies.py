@@ -1,21 +1,23 @@
-"""Persman: vacancies and job applications.
+"""TenantMan: vacancies and job applications.
 
 Public pages:
   GET  /vacancies              — list open vacancies
-  GET  /vacancies/<id>         — vacancy detail with Apply button
+  GET  /vacancies/<id>         — vacancy detail
   GET  /vacancies/<id>/apply   — application form
   POST /vacancies/<id>/apply   — submit application (name, contact, docs)
 
-Admin pages (MGT/EXE/ADM only):
+Admin pages (landlord/admin only):
   GET  /admin/vacancies                — list vacancies
   GET  /admin/vacancies/new            — create vacancy
-  POST /admin/vacancies/new
   GET  /admin/vacancies/<id>/edit      — edit vacancy
-  POST /admin/vacancies/<id>/edit
   POST /admin/vacancies/<id>/close     — close vacancy
   GET  /admin/vacancies/<id>/applications      — view applicants
   GET  /admin/applications/<id>                — view single application
-  GET  /admin/applications/<id>/download/<key> — download an uploaded document
+  GET  /admin/applications/<id>/download/<key> — download a document
+
+Data:
+  DB rows  — vacancies, applications tables (in the existing TenantMan DB)
+  Files    — DATA_JOBS/applications/<vacancy>_<app_id>/  (created on first use)
 """
 import datetime as dt
 import os
@@ -29,19 +31,15 @@ from flask import (abort, flash, g, redirect, render_template, request,
                    send_from_directory, url_for)
 from werkzeug.utils import secure_filename
 
-from app import (DATA, DB_PATH, app, audit, get_db, iso, now)
-
-try:
-    from PIL import Image, ImageOps
-    HAVE_PIL = True
-except ImportError:
-    HAVE_PIL = False
+from app import BASE, DB_PATH, admin_required, app, audit, get_db, iso, now
 
 
-APPLICATIONS_DIR = DATA / "applications"
+# Where applications and their uploaded documents are stored.
+# TenantMan has no DATA constant, so we create one next to the app.
+JOBS_DIR = BASE / "data_jobs"
+APPLICATIONS_DIR = JOBS_DIR / "applications"
 APPLICATIONS_DIR.mkdir(parents=True, exist_ok=True)
 
-VACANCY_LEVELS = ("MGT", "EXE", "ADM")
 ALLOWED_DOCS = {"pdf", "doc", "docx", "odt", "png", "jpg", "jpeg"}
 MAX_DOC_BYTES = 10 * 1024 * 1024
 EMAIL_RE = re.compile(r"^[^@\s]+@[^@\s]+\.[^@\s]+$")
@@ -49,25 +47,7 @@ PHONE_RE = re.compile(r"^[\d+()\-. ]{5,30}$")
 DOC_KEYS = ("cv", "id", "licence", "qualifications")
 
 
-def _can_manage(user):
-    if not user:
-        return False
-    if user["is_admin"]:
-        return True
-    return user["level"] in VACANCY_LEVELS
-
-
-def manager_required(fn):
-    @wraps(fn)
-    def wrapper(*a, **kw):
-        if not g.user:
-            return redirect(url_for("login"))
-        if not _can_manage(g.user):
-            abort(403)
-        return fn(*a, **kw)
-    return wrapper
-
-
+# ---- schema -------------------------------------------------------------
 SCHEMA = """
 CREATE TABLE IF NOT EXISTS vacancies (
   id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -116,6 +96,7 @@ def init_db():
 init_db()
 
 
+# ---- helpers ------------------------------------------------------------
 def _save_doc(file, app_dir, key):
     if not file or not file.filename:
         return None, None
@@ -147,6 +128,7 @@ def _application_or_404(aid):
     return a
 
 
+# ---- public pages -------------------------------------------------------
 @app.route("/vacancies")
 def vacancies_list():
     db = get_db()
@@ -206,8 +188,8 @@ def vacancy_apply(vid):
             try:
                 orig, stored = _save_doc(files[key], app_dir, key)
             except ValueError as e:
-                orig, stored = None, None
                 flash(str(e), "error")
+                continue
             if orig:
                 saved[f"{key}_name"] = orig
                 saved[f"{key}_path"] = stored
@@ -217,7 +199,7 @@ def vacancy_apply(vid):
             db.execute(f"UPDATE applications SET {cols} WHERE id=?",
                        (*saved.values(), aid))
         db.commit()
-        audit("public", "application_submitted", v["title"],
+        audit("-", "application_submitted", v["title"],
               f"{f['first_name']} {f['surname']} — app #{aid}")
         db.commit()
         flash("Application received. We will be in touch.", "ok")
@@ -225,8 +207,9 @@ def vacancy_apply(vid):
     return render_template("vacancy_apply.html", v=v, form={})
 
 
+# ---- admin pages --------------------------------------------------------
 @app.route("/admin/vacancies")
-@manager_required
+@admin_required
 def admin_vacancies():
     db = get_db()
     rows = db.execute(
@@ -263,7 +246,7 @@ def _form_to_vacancy(form):
 
 
 @app.route("/admin/vacancies/new", methods=["GET", "POST"])
-@manager_required
+@admin_required
 def admin_vacancy_new():
     if request.method == "POST":
         data, err = _form_to_vacancy(request.form)
@@ -286,7 +269,7 @@ def admin_vacancy_new():
 
 
 @app.route("/admin/vacancies/<int:vid>/edit", methods=["GET", "POST"])
-@manager_required
+@admin_required
 def admin_vacancy_edit(vid):
     v = _vacancy_or_404(vid)
     if request.method == "POST":
@@ -310,7 +293,7 @@ def admin_vacancy_edit(vid):
 
 
 @app.post("/admin/vacancies/<int:vid>/close")
-@manager_required
+@admin_required
 def admin_vacancy_close(vid):
     v = _vacancy_or_404(vid)
     db = get_db()
@@ -322,7 +305,7 @@ def admin_vacancy_close(vid):
 
 
 @app.route("/admin/vacancies/<int:vid>/applications")
-@manager_required
+@admin_required
 def admin_vacancy_applications(vid):
     v = _vacancy_or_404(vid)
     rows = get_db().execute(
@@ -332,7 +315,7 @@ def admin_vacancy_applications(vid):
 
 
 @app.route("/admin/applications/<int:aid>")
-@manager_required
+@admin_required
 def admin_application(aid):
     a = _application_or_404(aid)
     v = get_db().execute("SELECT * FROM vacancies WHERE id=?", (a["vacancy_id"],)).fetchone()
@@ -340,7 +323,7 @@ def admin_application(aid):
 
 
 @app.route("/admin/applications/<int:aid>/download/<key>")
-@manager_required
+@admin_required
 def admin_application_download(aid, key):
     if key not in DOC_KEYS:
         abort(404)
@@ -354,7 +337,7 @@ def admin_application_download(aid, key):
 
 
 @app.post("/admin/applications/<int:aid>/status")
-@manager_required
+@admin_required
 def admin_application_status(aid):
     a = _application_or_404(aid)
     status = request.form.get("status", "")
