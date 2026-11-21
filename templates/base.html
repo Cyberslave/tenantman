@@ -13,10 +13,11 @@
 <header class="top">
   <a class="brand" href="{{ url_for('home') }}">{% if brand.has_logo %}<img src="{{ brand.logo_url }}" alt="">{% endif %}<span>{{ brand.name }}</span></a>
   {% if g.user %}
-  <nav aria-label="Main">
-    {% for it in nav_items %}<a href="{{ it.url }}">{{ it.label }}{% if it.badge %} <span class="badge" id="{{ it.badge.id }}" {% if not it.badge.count %}hidden{% endif %}>{{ it.badge.count }}</span>{% endif %}</a>
-    {% endfor %}
-  </nav>
+  <nav aria-label="Main" class="publicnav">
+  {% for it in public_nav %}<a href="{{ it.url }}">{{ it.label }}</a>
+  {% endfor %}
+  <a href="{{ url_for('vacancies_list') }}">Vacancies</a>
+</nav>
   <form method="post" action="{{ url_for('logout') }}" class="who">
     <input type="hidden" name="_csrf" value="{{ csrf_token() }}">
     <span class="idtag lv-{{ g.user.level }}">{{ g.user.id }}</span>
