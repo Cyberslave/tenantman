@@ -1,0 +1,47 @@
+{% extends "base.html" %}
+{% block title %}Application #{{ a['id'] }} · {{ brand.name }}{% endblock %}
+{% block content %}
+<section class="panel narrow">
+  <div class="bar">
+    <h1>{{ a['first_name'] }} {{ a['surname'] }}</h1>
+    <a class="btn ghost" href="{{ url_for('admin_vacancy_applications', vid=a['vacancy_id']) }}">Back</a>
+  </div>
+  <p><b>Applied for:</b> {{ v['title'] }}</p>
+  <p><b>Email:</b> {{ a['email'] }}</p>
+  <p><b>Phone:</b> {{ a['phone'] }}</p>
+  {% if a['address'] %}<p><b>Address:</b> {{ a['address'] }}</p>{% endif %}
+  <p><b>Submitted:</b> {{ a['created_at']|local }}</p>
+  {% if a['message'] %}<p><b>Message:</b><br><span style="white-space:pre-wrap">{{ a['message'] }}</span></p>{% endif %}
+
+  <h2>Documents</h2>
+  {% set docs = [
+    ('cv', 'CV', a['cv_name']),
+    ('id', 'ID / Passport', a['id_name']),
+    ('licence', "Driver's licence", a['licence_name']),
+    ('qualifications', 'Qualifications', a['qualifications_name'])
+  ] %}
+  <ul>
+    {% for key, label, name in docs %}
+    <li>
+      {% if name %}
+        <a href="{{ url_for('admin_application_download', aid=a['id'], key=key) }}">{{ label }}: {{ name }}</a>
+      {% else %}
+        <span class="muted">{{ label }}: not provided</span>
+      {% endif %}
+    </li>
+    {% endfor %}
+  </ul>
+
+  <h2>Status</h2>
+  <p>Current: <b>{{ a['status'] }}</b></p>
+  <form method="post" action="{{ url_for('admin_application_status', aid=a['id']) }}" class="row">
+    <input type="hidden" name="_csrf" value="{{ csrf_token() }}">
+    <select name="status">
+      {% for s in ['new','reviewed','shortlisted','rejected','hired'] %}
+      <option value="{{ s }}" {{ 'selected' if a['status'] == s }}>{{ s }}</option>
+      {% endfor %}
+    </select>
+    <button class="btn" type="submit">Update</button>
+  </form>
+</section>
+{% endblock %}

@@ -1,0 +1,29 @@
+{% extends "base.html" %}
+{% block title %}Apply · {{ v['title'] }} · {{ brand.name }}{% endblock %}
+{% block content %}
+<section class="panel narrow">
+  <h1>Apply: {{ v['title'] }}</h1>
+  <form method="post" enctype="multipart/form-data" class="stack">
+    <input type="hidden" name="_csrf" value="{{ csrf_token() }}">
+    <div class="grid">
+      <label>First name <input name="first_name" value="{{ form.get('first_name','') }}" required autofocus></label>
+      <label>Surname <input name="surname" value="{{ form.get('surname','') }}" required></label>
+    </div>
+    <div class="grid">
+      <label>Email <input type="email" name="email" value="{{ form.get('email','') }}" required></label>
+      <label>Phone <input name="phone" value="{{ form.get('phone','') }}" required></label>
+    </div>
+    <label>Address <textarea name="address" rows="2">{{ form.get('address','') }}</textarea></label>
+    <label>Cover message (optional) <textarea name="message" rows="4">{{ form.get('message','') }}</textarea></label>
+
+    <h2>Documents</h2>
+    <p class="muted small">PDF, DOC, DOCX, ODT, PNG or JPG. Max 10 MB each. Upload at least one document.</p>
+    <label>CV <input type="file" name="cv" accept=".pdf,.doc,.docx,.odt,.png,.jpg,.jpeg"></label>
+    <label>ID / Passport <input type="file" name="id" accept=".pdf,.doc,.docx,.odt,.png,.jpg,.jpeg"></label>
+    <label>Driver's licence <input type="file" name="licence" accept=".pdf,.doc,.docx,.odt,.png,.jpg,.jpeg"></label>
+    <label>Qualifications <input type="file" name="qualifications" accept=".pdf,.doc,.docx,.odt,.png,.jpg,.jpeg"></label>
+
+    <button class="btn" type="submit">Submit application</button>
+  </form>
+</section>
+{% endblock %}

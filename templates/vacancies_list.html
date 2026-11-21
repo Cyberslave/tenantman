@@ -1,0 +1,24 @@
+{% extends "base.html" %}
+{% block title %}Vacancies · {{ brand.name }}{% endblock %}
+{% block content %}
+<section class="panel">
+  <h1>Vacancies</h1>
+  {% if vacancies %}
+  <ul class="vacancy-list" style="list-style:none;padding:0">
+    {% for v in vacancies %}
+    <li style="padding:1rem;border-bottom:1px solid var(--line)">
+      <h2 style="margin:0"><a href="{{ url_for('vacancy_detail', vid=v['id']) }}">{{ v['title'] }}</a></h2>
+      <p class="muted small" style="margin:.3rem 0">
+        {% if v['department'] %}{{ v['department'] }} ·{% endif %}
+        {% if v['location'] %}{{ v['location'] }} ·{% endif %}
+        {% if v['employment_type'] %}{{ v['employment_type'] }}{% endif %}
+      </p>
+      {% if v['closes_on'] %}<p class="small">Closes {{ v['closes_on'] }}</p>{% endif %}
+    </li>
+    {% endfor %}
+  </ul>
+  {% else %}
+  <p class="muted">No vacancies are open at the moment.</p>
+  {% endif %}
+</section>
+{% endblock %}

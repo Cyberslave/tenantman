@@ -1,0 +1,26 @@
+{% extends "base.html" %}
+{% block title %}Vacancies · {{ brand.name }}{% endblock %}
+{% block content %}
+<section class="panel">
+  <div class="bar">
+    <h1>Vacancies</h1>
+    <a class="btn" href="{{ url_for('admin_vacancy_new') }}">Post vacancy</a>
+  </div>
+  {% if vacancies %}
+  <table style="width:100%;border-collapse:collapse">
+    <tr><th style="text-align:left">Title</th><th>Status</th><th>Closes</th><th>Apps</th><th></th></tr>
+    {% for v in vacancies %}
+    <tr>
+      <td><a href="{{ url_for('admin_vacancy_applications', vid=v['id']) }}">{{ v['title'] }}</a></td>
+      <td>{{ v['status'] }}</td>
+      <td>{{ v['closes_on'] or '—' }}</td>
+      <td>{{ v['app_count'] }}{% if v['new_count'] %} <span class="badge">{{ v['new_count'] }} new</span>{% endif %}</td>
+      <td><a class="btn ghost small" href="{{ url_for('admin_vacancy_edit', vid=v['id']) }}">Edit</a></td>
+    </tr>
+    {% endfor %}
+  </table>
+  {% else %}
+  <p class="muted">No vacancies posted yet.</p>
+  {% endif %}
+</section>
+{% endblock %}

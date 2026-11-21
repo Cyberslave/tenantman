@@ -1,0 +1,30 @@
+{% extends "base.html" %}
+{% block title %}{{ v['title'] }} · {{ brand.name }}{% endblock %}
+{% block content %}
+<section class="panel">
+  <h1>{{ v['title'] }}</h1>
+  <p class="muted small">
+    {% if v['department'] %}{{ v['department'] }} ·{% endif %}
+    {% if v['location'] %}{{ v['location'] }} ·{% endif %}
+    {% if v['employment_type'] %}{{ v['employment_type'] }}{% endif %}
+    {% if v['salary_range'] %} · {{ v['salary_range'] }}{% endif %}
+  </p>
+  {% if v['closes_on'] %}<p><b>Closes:</b> {{ v['closes_on'] }}</p>{% endif %}
+
+  <h2>Description</h2>
+  <div style="white-space:pre-wrap">{{ v['description'] }}</div>
+
+  {% if v['requirements'] %}
+  <h2>Requirements</h2>
+  <div style="white-space:pre-wrap">{{ v['requirements'] }}</div>
+  {% endif %}
+
+  {% if v['status'] == 'open' %}
+  <p style="margin-top:2rem">
+    <a class="btn" href="{{ url_for('vacancy_apply', vid=v['id']) }}">Apply for this role</a>
+  </p>
+  {% else %}
+  <p class="muted">This vacancy is closed.</p>
+  {% endif %}
+</section>
+{% endblock %}

@@ -1,0 +1,32 @@
+{% extends "base.html" %}
+{% block title %}{{ 'Edit vacancy' if not is_new else 'New vacancy' }} · {{ brand.name }}{% endblock %}
+{% block content %}
+<section class="panel">
+  <h1>{{ 'Edit vacancy' if not is_new else 'Post vacancy' }}</h1>
+  <form method="post" class="stack">
+    <input type="hidden" name="_csrf" value="{{ csrf_token() }}">
+    <label>Title <input name="title" value="{{ v.get('title','') }}" required></label>
+    <div class="grid">
+      <label>Department <input name="department" value="{{ v.get('department','') }}"></label>
+      <label>Location <input name="location" value="{{ v.get('location','') }}"></label>
+    </div>
+    <div class="grid">
+      <label>Employment type <input name="employment_type" value="{{ v.get('employment_type','') }}" placeholder="Full-time, Contract…"></label>
+      <label>Salary range <input name="salary_range" value="{{ v.get('salary_range','') }}"></label>
+    </div>
+    <label>Closing date <input type="date" name="closes_on" value="{{ v.get('closes_on','') or '' }}"></label>
+    <label>Description <textarea name="description" rows="6" required>{{ v.get('description','') }}</textarea></label>
+    <label>Requirements <textarea name="requirements" rows="4">{{ v.get('requirements','') }}</textarea></label>
+    <button class="btn" type="submit">{{ 'Save' if not is_new else 'Publish vacancy' }}</button>
+    {% if not is_new %}
+    <p class="muted small">Applications arrive in <a href="{{ url_for('admin_vacancy_applications', vid=vid) }}">the applications list</a>.</p>
+    {% endif %}
+  </form>
+  {% if not is_new %}
+  <form method="post" action="{{ url_for('admin_vacancy_close', vid=vid) }}" style="margin-top:1rem">
+    <input type="hidden" name="_csrf" value="{{ csrf_token() }}">
+    <button class="btn danger" type="submit">Close this vacancy</button>
+  </form>
+  {% endif %}
+</section>
+{% endblock %}

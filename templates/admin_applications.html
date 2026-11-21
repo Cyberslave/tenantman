@@ -1,0 +1,27 @@
+{% extends "base.html" %}
+{% block title %}Applications · {{ v['title'] }} · {{ brand.name }}{% endblock %}
+{% block content %}
+<section class="panel">
+  <div class="bar">
+    <h1>Applications: {{ v['title'] }}</h1>
+    <a class="btn ghost" href="{{ url_for('admin_vacancies') }}">Back</a>
+  </div>
+  {% if applications %}
+  <table style="width:100%;border-collapse:collapse">
+    <tr><th>Name</th><th>Email</th><th>Phone</th><th>Submitted</th><th>Status</th><th></th></tr>
+    {% for a in applications %}
+    <tr>
+      <td>{{ a['first_name'] }} {{ a['surname'] }}</td>
+      <td>{{ a['email'] }}</td>
+      <td>{{ a['phone'] }}</td>
+      <td>{{ a['created_at']|local }}</td>
+      <td>{{ a['status'] }}</td>
+      <td><a class="btn ghost small" href="{{ url_for('admin_application', aid=a['id']) }}">View</a></td>
+    </tr>
+    {% endfor %}
+  </table>
+  {% else %}
+  <p class="muted">No applications yet.</p>
+  {% endif %}
+</section>
+{% endblock %}
