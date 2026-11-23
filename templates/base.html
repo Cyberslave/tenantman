@@ -18,6 +18,11 @@
     {% endfor %}
     <a href="{{ url_for('admin_vacancies') }}">Vacancies</a>
   </nav>
+  <form method="post" action="{{ url_for('admin_save_to_github') }}" style="display:inline;margin-left:.5rem" title="Save database changes to GitHub so they survive restarts">
+    <input type="hidden" name="_csrf" value="{{ csrf_token() }}">
+    <input type="hidden" name="next" value="{{ request.path }}">
+    <button class="btn ghost small" type="submit">💾 Save to GitHub</button>
+  </form>
   <form method="post" action="{{ url_for('logout') }}" class="who">
     <input type="hidden" name="_csrf" value="{{ csrf_token() }}">
     <span class="idtag lv-{{ g.user.level }}">{{ g.user.id }}</span>
