@@ -4,6 +4,9 @@ Only the administrator can add, caption, reorder or delete photos. Everyone can 
 home page; whether people who are not signed in can see the photos is the administrator's choice.
 With Pillow installed every photo is checked, rotated upright, shrunk for the web and stripped of
 hidden camera data (including GPS location); a small preview is made for the gallery grid.
+
+Photos and captions are committed back to GitHub after every change so they survive
+Render restarts (see github_commit.py).
 """
 import io
 import sqlite3
@@ -35,6 +38,19 @@ con.execute("""CREATE TABLE IF NOT EXISTS photos (
   caption TEXT, position INTEGER NOT NULL, uploaded_at TEXT NOT NULL, uploaded_by TEXT)""")
 con.commit()
 con.close()
+
+
+def _commit_to_github(message):
+    """Best-effort commit of DB + photo files back to GitHub. Never raises.
+    If it fails, the admin sees a flash message so they know to retry."""
+    try:
+        from github_commit import commit_data_folder
+        ok = commit_data_folder(message)
+        if not ok:
+            flash("Saved locally, but the GitHub commit failed. "
+                  "Changes will be lost on the next restart — please retry.", "error")
+    except Exception as e:
+        flash(f"Saved locally, but GitHub commit error: {e}.", "error")
 
 
 def home_settings(db):
@@ -150,6 +166,7 @@ def photos_upload():
             audit(g.user["id"], "photos_added", None, f"{added} photo(s)")
             db.commit()
             flash(f"Added {added} photo{'s' if added != 1 else ''}.", "ok")
+            _commit_to_github(f"Gallery: add {added} photo(s)")
         for e in errors:
             flash(e + ". It was not added.", "error")
     return redirect(url_for("admin_photos"))
@@ -170,6 +187,7 @@ def photo_caption(pid):
     db.execute("UPDATE photos SET caption=? WHERE id=?", (" ".join(request.form.get("caption", "").split())[:200], pid))
     db.commit()
     flash("Caption saved.", "ok")
+    _commit_to_github(f"Gallery: caption for photo {pid}")
     return redirect(url_for("admin_photos"))
 
 
@@ -185,6 +203,7 @@ def photo_move(pid):
         db.execute("UPDATE photos SET position=? WHERE id=?", (other["position"], pid))
         db.execute("UPDATE photos SET position=? WHERE id=?", (row["position"], other["id"]))
         db.commit()
+        _commit_to_github(f"Gallery: reorder photo {pid}")
     return redirect(url_for("admin_photos"))
 
 
@@ -198,6 +217,7 @@ def photo_delete(pid):
     audit(g.user["id"], "photo_deleted", None, f"photo {pid}")
     db.commit()
     flash("Photo deleted.", "ok")
+    _commit_to_github(f"Gallery: delete photo {pid}")
     return redirect(url_for("admin_photos"))
 
 
@@ -210,4 +230,5 @@ def photos_settings():
     audit(g.user["id"], "home_page_changed", None, "welcome text or photo visibility")
     db.commit()
     flash("Home page settings saved.", "ok")
+    _commit_to_github("Gallery: home page settings")
     return redirect(url_for("admin_photos"))
