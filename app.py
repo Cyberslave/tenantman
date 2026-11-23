@@ -595,7 +595,22 @@ def create_admin(name, password):
         (TENANT_DIR / eid).mkdir(parents=True, exist_ok=True)
         db.commit()
     click.echo(f"Administrator created. Sign in with ID: {eid}")
-
+  
+@app.post("/admin/save-to-github")
+@admin_required
+def admin_save_to_github():
+    """Commit the current DB to GitHub. Called by a button on admin pages."""
+    from github_commit import commit_data_folder
+    target = request.form.get("next") or request.referrer or url_for("admin_home")
+    try:
+        ok = commit_data_folder("Admin: manual save")
+        if ok:
+            flash("Saved to GitHub. Changes now survive restarts.", "ok")
+        else:
+            flash("GitHub commit failed — check the Render logs.", "error")
+    except Exception as e:
+        flash(f"GitHub commit error: {e}", "error")
+    return redirect(target)
 
 # Workspace, calendar, notifications and messaging live in features.py.
 # Imported last because it uses the objects defined above.
