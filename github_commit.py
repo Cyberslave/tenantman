@@ -103,7 +103,7 @@ def commit_data_folder(message):
     DB update) so we don't commit twice.
     """
     from app import DB_PATH, DATA
-    ok_db = commit_file(DB_PATH, "data/persman.db", message + " (db)")
+    ok_db = commit_file(DB_PATH, "data/tenantman.db", message + " (db)")
     ok_photos = True
     photos_dir = DATA / "photos"
     if photos_dir.exists():
