@@ -21,8 +21,8 @@ from werkzeug.security import generate_password_hash
 
 import exporters
 from app import (ARCHIVE_DIR, DB_PATH, ID_RE, LEVELS, TENANT_DIR, UTC_OFFSET, admin_required, app,
-                 audit, gen_password, get_db, get_tenant, iso, local_fmt, login_required,
-                 new_account_id, no_store, now, save_document)
+                 audit, commit_github, gen_password, get_db, get_tenant, iso, local_fmt,
+                 login_required, new_account_id, no_store, now, save_document)
 from features import BACKGROUND_TASKS, _set_setting, attachment, get_brand, notify
 
 # --------------------------------------------------------------------------
@@ -466,7 +466,7 @@ def housekeeping(db, force=False):
                         "WHERE l.ended_on IS NULL AND l.end_date IS NOT NULL").fetchall():
         days = (dt.date.fromisoformat(l["end_date"]) - today).days
         who, space = display_name(l), unit_rows(db)[l["unit_code"]]["name"]
-        mark = next((m for m in (30, 60) if days <= m), None)   # the tightest notice that applies
+        mark = next((m for m in (30, 60) if days <= m), None)
         if mark is not None and days >= 0 and _once(db, f"lease:{l['id']}:{mark}"):
             for target, link in [(l["tenant_id"], "/me")] + [(a, f"/admin/tenants/{l['tenant_id']}") for a in admins]:
                 notify(db, target, "lease", f"Lease ends in {days} day{'s' if days != 1 else ''}",
@@ -581,6 +581,7 @@ def admin_new():
         audit(g.user["id"], "tenant_added", tid, f"{f['business_name'] or f['full_name']} · {unit_rows(db)[v['unit_code']]['name']}")
         generate_rent(db, today)
         db.commit()
+        commit_github(f"Tenant added: {tid}", include_employees=True)
         return no_store(render_template("admin_created.html", t=get_tenant(tid), password=password, reset=False))
     form = _lease_defaults(request.args.get("unit") if request.args.get("unit") in LEVELS else None)
     return render_template("admin_new.html", form=form, spaces=_space_options(db, today))
@@ -641,6 +642,7 @@ def admin_edit(tid):
                    (f["full_name"], f["business_name"], f["trade"], f["email"], f["phone"], t["id"]))
         audit(g.user["id"], "tenant_edited", t["id"])
         db.commit()
+        commit_github(f"Tenant edited: {t['id']}")
         flash("Details saved.", "ok")
     return redirect(url_for("admin_tenant", tid=t["id"]))
 
@@ -663,6 +665,7 @@ def admin_reset(tid):
     db.execute("UPDATE sessions_log SET logout_at=?, logout_reason='Password reset' WHERE account_id=? AND logout_at IS NULL", (iso(now()), t["id"]))
     audit(g.user["id"], "password_reset", t["id"])
     db.commit()
+    commit_github(f"Tenant password reset: {t['id']}")
     return no_store(render_template("admin_created.html", t=t, password=password, reset=True))
 
 
@@ -684,6 +687,7 @@ def admin_remove(tid):
     db.execute("DELETE FROM accounts WHERE id=?", (t["id"],))
     audit(g.user["id"], "tenant_removed", t["id"], f"{display_name(t)}; balance at removal {balance / 100:.2f}; records archived")
     db.commit()
+    commit_github(f"Tenant removed: {t['id']}", include_employees=True)
     flash(f"{display_name(t)} ({t['id']}) was removed. Their files and a copy of their lease and payment records were moved to the archive.", "ok")
     return redirect(url_for("admin_tenants"))
 
@@ -703,6 +707,7 @@ def lease_add(tid):
         notify(db, t["id"], "lease", f"New lease: {unit_rows(db)[v['unit_code']]['name']}", f"From {dt.date.fromisoformat(v['start_date']).strftime('%d %b %Y')}", "/me")
         generate_rent(db)
         db.commit()
+        commit_github(f"Lease added: {t['id']}")
         flash("Lease added.", "ok")
     return redirect(url_for("admin_tenant", tid=t["id"]))
 
@@ -734,6 +739,7 @@ def lease_edit(lid):
         db.execute("DELETE FROM notices_sent WHERE key LIKE ?", (f"lease:{lid}:%",))
         audit(g.user["id"], "lease_edited", l["tenant_id"], f"rent {rent / 100:.2f}, due day {due_day}")
         db.commit()
+        commit_github(f"Lease edited: {l['tenant_id']}")
         flash("Lease updated. New rent applies to months not yet billed.", "ok")
     return redirect(url_for("admin_tenant", tid=l["tenant_id"]))
 
@@ -753,6 +759,7 @@ def lease_end(lid):
         audit(g.user["id"], "lease_ended", l["tenant_id"], f"{unit_rows(db)[l['unit_code']]['name']} ended {ended.isoformat()}")
         notify(db, l["tenant_id"], "lease", f"Lease ended: {unit_rows(db)[l['unit_code']]['name']}", f"Last day {ended.strftime('%d %b %Y')}", "/me")
         db.commit()
+        commit_github(f"Lease ended: {l['tenant_id']}")
         flash("Lease ended. Rent is billed up to and including that month; void the last charge if you want to prorate.", "ok")
     return redirect(url_for("admin_tenant", tid=l["tenant_id"]))
 
@@ -778,6 +785,7 @@ def charge_add(tid):
         if amount > 0:
             notify(db, t["id"], "billing", f"New charge: {fmt_money(amount)}", f"{desc} · due {due.strftime('%d %b %Y')}", "/statement")
         db.commit()
+        commit_github(f"Charge added: {t['id']}")
         flash("Charge added.", "ok")
     return redirect(url_for("admin_tenant", tid=t["id"]))
 
@@ -794,6 +802,7 @@ def charge_void(cid):
         db.execute("UPDATE charges SET voided_at=?, void_reason=? WHERE id=?", (iso(now()), reason, cid))
         audit(g.user["id"], "charge_voided", c["tenant_id"], f"{c['description']}: {reason}")
         db.commit()
+        commit_github(f"Charge voided: {c['id']}")
         flash("Charge cancelled. It stays on record, crossed out.", "ok")
     return redirect(url_for("admin_tenant", tid=c["tenant_id"]))
 
@@ -821,6 +830,7 @@ def payment_add(tid):
         audit(g.user["id"], "payment_recorded", t["id"], f"{receipt} {amount / 100:.2f} {method}")
         notify(db, t["id"], "billing", f"Payment received: {fmt_money(amount)}", f"Receipt {receipt}", f"/receipts/{cur.lastrowid}")
         db.commit()
+        commit_github(f"Payment: {receipt}")
         flash(f"Payment recorded. Receipt {receipt}.", "ok")
     return redirect(url_for("admin_tenant", tid=t["id"]))
 
@@ -838,6 +848,7 @@ def payment_void(pid):
         audit(g.user["id"], "payment_voided", p["tenant_id"], f"{p['receipt_no']}: {reason}")
         notify(db, p["tenant_id"], "billing", f"Payment cancelled: {fmt_money(p['amount_cents'])}", f"Receipt {p['receipt_no']}: {reason}", "/statement")
         db.commit()
+        commit_github(f"Payment voided: {p['receipt_no']}")
         flash("Payment cancelled. It stays on record, crossed out.", "ok")
     return redirect(url_for("admin_tenant", tid=p["tenant_id"]))
 
@@ -1017,6 +1028,7 @@ def admin_premises():
             db.execute("UPDATE units SET name=?, area_m2=?, rent_cents=?, notes=? WHERE code=?", (name, area, rent, notes, code))
         audit(g.user["id"], "premises_changed", None, "measurements, spaces or payment details updated")
         db.commit()
+        commit_github("Premises settings changed")
         flash("Premises saved.", "ok")
         return redirect(url_for("admin_premises"))
     plan = build_plan(db, today)
@@ -1095,6 +1107,7 @@ def request_new():
                 notify(db, a, "request", f"{'Urgent request' if prio == 'urgent' else 'New request'}: {title}",
                        f"{display_name(g.user)}", f"/requests/{cur.lastrowid}")
             db.commit()
+            commit_github(f"Request: {title[:60]}")
             flash("Your request was sent. You will be told when it changes.", "ok")
             return redirect(url_for("request_detail", rid=cur.lastrowid))
     return render_template("request_new.html", form=request.form, mine=mine)
@@ -1116,7 +1129,7 @@ def request_detail(rid):
             db.execute("INSERT INTO request_comments (request_id, author_id, body, created_at) VALUES (?,?,?,?)", (rid, g.user["id"], body, t))
         new_status = status if changed else r["status"]
         if not g.user["is_admin"] and r["status"] in ("resolved", "closed"):
-            new_status = "open"   # a tenant replying reopens it
+            new_status = "open"
         db.execute("UPDATE requests SET status=?, updated_at=?, resolved_at=? WHERE id=?",
                    (new_status, t, t if new_status in ("resolved", "closed") else None, rid))
         label = dict(REQ_STATUSES)[new_status]
@@ -1126,6 +1139,7 @@ def request_detail(rid):
             for a in admin_ids(db):
                 notify(db, a, "request", f"Tenant reply: {r['title']}", f"{display_name(g.user)}: {body[:140]}", f"/requests/{rid}")
         db.commit()
+        commit_github(f"Request #{rid} update")
         flash("Saved.", "ok")
         return redirect(url_for("request_detail", rid=rid))
     comments = db.execute("SELECT c.*, a.full_name, a.is_admin FROM request_comments c JOIN accounts a ON a.id=c.author_id WHERE c.request_id=? ORDER BY c.id", (rid,)).fetchall()
@@ -1148,5 +1162,6 @@ def admin_tenant_permissions(tid):
     db.execute("UPDATE accounts SET permissions=? WHERE id=?", (_json.dumps(chosen), t["id"]))
     audit(g.user["id"], "permissions_changed", t["id"], ",".join(chosen) or "(none)")
     db.commit()
+    commit_github(f"Permissions changed: {t['id']}")
     flash("Permissions saved.", "ok")
     return redirect(url_for("admin_tenant", tid=tid))
