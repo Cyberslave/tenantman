@@ -215,6 +215,24 @@ def no_store(html):
     return resp
 
 
+def commit_github(message, include_employees=False):
+    """Commit the DB (and optionally tenant files) to GitHub so writes survive restarts."""
+    try:
+        from github_commit import commit_data_folder, commit_file
+        ok = commit_data_folder(message)
+        if include_employees and TENANT_DIR.exists():
+            for f in TENANT_DIR.rglob("*"):
+                if f.is_file():
+                    rel = f.relative_to(DATA).as_posix()
+                    ok &= commit_file(f, f"data/{rel}", f"{message} ({f.name})")
+        if not ok:
+            print(f"[commit_github] partial failure for: {message}", flush=True)
+        return ok
+    except Exception as e:
+        print(f"[commit_github] error: {e}", flush=True)
+        return False
+
+
 # ---- template helpers ----------------------------------------------------
 @app.context_processor
 def inject():
@@ -255,6 +273,7 @@ def from_json_filter(text):
     except (ValueError, TypeError):
         return []
 
+
 @app.template_filter("filesize")
 def filesize(n):
     for unit in ("B", "KB", "MB"):
@@ -276,7 +295,7 @@ def csrf_token():
 def csrf_protect():
     if request.method == "POST":
         if request.path == "/admin/photos/upload":
-            request.max_content_length = 90 * 1024 * 1024   # several phone photos at once (checked per file later)
+            request.max_content_length = 90 * 1024 * 1024
         sent = request.form.get("_csrf") or request.headers.get("X-CSRF-Token", "")
         if not secrets.compare_digest(sent, session.get("csrf", "")):
             abort(400)
@@ -375,7 +394,7 @@ def too_large(_e):
 # --------------------------------------------------------------------------
 @app.route("/")
 def home():
-    import website   # the home page is assembled from registered sections (see website.py)
+    import website
     return website.render_home()
 
 
@@ -403,7 +422,6 @@ def login():
             db.commit()
             flash("Too many failed attempts. Try again in a few minutes.", "error")
         elif emp and ok:
-            # close sessions that ended by timeout without a sign-out
             cutoff = iso(now() - dt.timedelta(minutes=SESSION_MINUTES))
             db.execute("UPDATE sessions_log SET logout_at=last_seen, logout_reason='Timed out' "
                        "WHERE account_id=? AND logout_at IS NULL AND last_seen<?", (eid, cutoff))
@@ -463,6 +481,7 @@ def change_password():
                        (generate_password_hash(new), g.user["id"]))
             audit(g.user["id"], "password_changed", g.user["id"])
             db.commit()
+            commit_github(f"Password changed: {g.user['id']}")
             flash("Password updated.", "ok")
             return redirect(url_for("dashboard"))
     return render_template("change_password.html")
@@ -492,6 +511,7 @@ def save_document(eid, file, category):
                 path.stat().st_size, iso(now()), g.user["id"]))
     audit(g.user["id"], "document_uploaded", eid, original)
     db.commit()
+    commit_github(f"Document: {original}", include_employees=True)
     flash(f"Uploaded {original}.", "ok")
     return True
 
@@ -519,6 +539,7 @@ def delete_document(doc_id):
     db.execute("DELETE FROM documents WHERE id=?", (doc_id,))
     audit(g.user["id"], "document_deleted", doc["account_id"], doc["original_name"])
     db.commit()
+    commit_github(f"Document deleted: {doc['original_name']}", include_employees=True)
     flash(f"Deleted {doc['original_name']}.", "ok")
     return redirect(url_for("admin_tenant", tid=doc["account_id"]))
 
@@ -577,6 +598,27 @@ def admin_logs_csv():
 
 
 # --------------------------------------------------------------------------
+# Manual save to GitHub
+# --------------------------------------------------------------------------
+@app.post("/admin/save-to-github")
+@admin_required
+def admin_save_to_github():
+    target = request.form.get("next") or request.referrer or url_for("admin_home")
+    if not target.startswith("/"):
+        target = url_for("admin_home")
+    try:
+        from github_commit import commit_data_folder
+        ok = commit_data_folder("Admin: manual save")
+        if ok:
+            flash("Saved to GitHub. Changes will survive restarts.", "ok")
+        else:
+            flash("GitHub commit failed — check the Render logs for details.", "error")
+    except Exception as e:
+        flash(f"GitHub commit error: {e}", "error")
+    return redirect(target)
+
+
+# --------------------------------------------------------------------------
 # CLI: create the first administrator
 #   flask --app app create-admin
 # --------------------------------------------------------------------------
@@ -594,27 +636,9 @@ def create_admin(name, password):
                    "VALUES (?,?,?,?,0,1,?)", (eid, name, ADMIN_LEVEL, generate_password_hash(password), iso(now())))
         (TENANT_DIR / eid).mkdir(parents=True, exist_ok=True)
         db.commit()
+        commit_github(f"Admin created: {eid}")
     click.echo(f"Administrator created. Sign in with ID: {eid}")
 
-
-@app.post("/admin/save-to-github")
-@admin_required
-def admin_save_to_github():
-    """Commit the current database to GitHub so admin changes survive restarts."""
-    target = request.form.get("next") or request.referrer or url_for("admin_home")
-    # don't redirect to an external URL even if 'next' is tampered with
-    if not target.startswith("/"):
-        target = url_for("admin_home")
-    try:
-        from github_commit import commit_data_folder
-        ok = commit_data_folder("Admin: manual save")
-        if ok:
-            flash("Saved to GitHub. Changes will survive restarts.", "ok")
-        else:
-            flash("GitHub commit failed — check the Render logs for details.", "error")
-    except Exception as e:
-        flash(f"GitHub commit error: {e}", "error")
-    return redirect(target)
 
 # Workspace, calendar, notifications and messaging live in features.py.
 # Imported last because it uses the objects defined above.
